@@ -1,0 +1,5 @@
+.env
+orders.db
+works.XLSX
+__pycache__/
+*.pyc
