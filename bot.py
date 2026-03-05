@@ -8,6 +8,9 @@ from telegram.ext import (
     Application, CommandHandler,
     ConversationHandler, MessageHandler, filters, ContextTypes
 )
+import threading
+import http.server
+import socketserver
 from config import TELEGRAM_TOKEN, ADMIN_ID
 
 logging.basicConfig(
@@ -175,6 +178,14 @@ def save_to_db(user_id, username, category, service, details):
     conn.close()
 
 # ── Handlers ──────────────────────────────────────────
+def run_health_check():
+    """Render uchun kichik HTTP server. Bu Render botni 'dead' deb o'ylashini oldini oladi."""
+    port = int(os.environ.get("PORT", 8000))
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", port), handler) as httpd:
+        logger.info(f"✅ Health Check server {port}-portda ishga tushdi.")
+        httpd.serve_forever()
+
 async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
     """Botni uxlamasligi uchun har 10 daqiqada getMe so'rovini yuboradi."""
     try:
@@ -556,6 +567,10 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 def main():
     init_db()
     init_excel()
+    
+    # Health Check serverni alohida thread'da ishga tushirish
+    threading.Thread(target=run_health_check, daemon=True).start()
+    
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     
     # Bot ma'lumotlarini o'rnatish
