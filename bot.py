@@ -670,16 +670,16 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         f"📅 *Sana:* {sana}"
     )
     
-        inline_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
-            [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
-        ])
-        
-        try:
-            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown", reply_markup=inline_kb)
-            await context.bot.send_voice(chat_id=ADMIN_ID, voice=update.message.voice.file_id)
-        except Exception as e:
-            logger.error(f"Admin xabar yuborishda xato: {e}")
+    inline_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
+        [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
+    ])
+    
+    try:
+        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown", reply_markup=inline_kb)
+        await context.bot.send_voice(chat_id=ADMIN_ID, voice=update.message.voice.file_id)
+    except Exception as e:
+        logger.error(f"Admin xabar yuborishda xato: {e}")
 
     await update.message.reply_text(
         "✅ *Ovozli buyurtmangiz qabul qilindi!*\nTez orada bog'lanamiz. 🙏",
