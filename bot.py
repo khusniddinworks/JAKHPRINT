@@ -4,10 +4,13 @@ import os
 import json
 from datetime import datetime
 from openpyxl import Workbook, load_workbook
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, WebAppInfo
+from telegram import (
+    Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, 
+    WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+)
 from telegram.ext import (
-    Application, CommandHandler,
-    ConversationHandler, MessageHandler, filters, ContextTypes
+    Application, CommandHandler, ConversationHandler, 
+    MessageHandler, filters, ContextTypes, CallbackQueryHandler
 )
 import threading
 import http.server
@@ -25,7 +28,21 @@ EXCEL_FILE = os.path.join(os.path.dirname(__file__), "works.xlsx")
 
 # ── States ───────────────────────────────────────────
 (SELECT_CATEGORY, SELECT_SUB, ENTER_DETAILS, CONFIRM_STATE, 
- BROADCAST_STATE, CALC_START, CALC_SERVICES, CALC_PLAN, CALC_ADDONS) = range(9)
+ BROADCAST_STATE, CALC_START, CALC_SERVICES, CALC_PLAN, CALC_ADDONS,
+ PRICE_EDIT_CAT, PRICE_EDIT_SVC, PRICE_EDIT_VAL, ANSWER_STATE) = range(13)
+
+# ── Narxlar fayli ─────────────────────────────────
+PRICES_FILE = os.path.join(os.path.dirname(__file__), "prices.json")
+
+def load_prices():
+    """prices.json dan narxlarni o'qish."""
+    with open(PRICES_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_prices(data):
+    """prices.json ga narxlarni yozish."""
+    with open(PRICES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 # ── Narxlar va Ma'lumotlar ───────────────────────────
 USD_TO_UZS = 13000
@@ -56,7 +73,7 @@ ADDONS_PRICES = {
 
 # ── Menyu ma'lumotlari ───────────────────────────────
 MAIN_BUTTONS = []
-ADMIN_ONLY_BUTTONS = ["📊 Statistika", "📂 Excelni yuklab olish", "📢 Xabar yuborish"]
+ADMIN_ONLY_BUTTONS = ["📊 Statistika", "📂 Excelni yuklab olish", "📢 Xabar yuborish", "💰 Narxlarni o'zgartirish"]
 
 SUB_BUTTONS = {
     "🌐 Veb-sayt": [
@@ -99,11 +116,10 @@ CONFIRM_KB = make_keyboard(CONFIRM_BUTTONS, columns=1)
 
 
 def get_main_keyboard(user_id):
-    # GitHub Pages manzilingiz (Root)
-    web_app_url = "https://khusniddinworks.github.io/JAKHPRINT/"
+    # Render URL (dinamik narxlar uchun)
+    web_app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://khusniddinworks.github.io/JAKHPRINT/")
     
     keyboard = []
-    # Mini App tugmasi
     keyboard.append([KeyboardButton("🚀 Xizmatlar va Narxlar", web_app=WebAppInfo(url=web_app_url))])
     keyboard.append([KeyboardButton("📞 Bog'lanish"), KeyboardButton("ℹ️ Biz haqimizda")])
         
@@ -199,7 +215,7 @@ def run_health_check():
     """Render uchun xavfsiz HTTP server. Faqat ruxsat berilgan fayllarni beradi."""
     port = int(os.environ.get("PORT", 8000))
     web_dir = os.path.dirname(__file__)
-    ALLOWED_EXTENSIONS = ('.html', '.css', '.js', '.png', '.jpg', '.ico', '.svg', '.webp')
+    ALLOWED_EXTENSIONS = ('.html', '.css', '.js', '.json', '.png', '.jpg', '.ico', '.svg', '.webp')
     
     class SafeHandler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -244,6 +260,100 @@ async def set_bot_info(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Bot ma'lumotlarini o'rnatishda xato: {e}")
 
+# ── Admin Buyurtmaga Javob ─────────────────────────
+async def order_action_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data.split("_") # pattern: "ord_action_userid_orderid"
+    action = data[1]
+    target_user_id = int(data[2])
+    order_id = data[3]
+    
+    if action == "reply":
+        context.user_data["reply_to_user"] = target_user_id
+        context.user_data["reply_order_id"] = order_id
+        await query.message.reply_text(f"✍️ Buyurtma #{order_id} uchun javobingizni yozing:")
+        return ANSWER_STATE
+    
+    elif action == "done":
+        await query.edit_message_caption(caption=query.message.caption + "\n\n✅ *BAJARILDI*", parse_mode="Markdown")
+        try:
+            await context.bot.send_message(chat_id=target_user_id, text=f"✅ Buyurtmangiz #{order_id} muvaffaqiyatli bajarildi!")
+        except: pass
+
+async def answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    target_user_id = context.user_data.get("reply_to_user")
+    order_id = context.user_data.get("reply_order_id")
+    
+    if not target_user_id: return SELECT_CATEGORY
+    
+    try:
+        msg = f"📩 *Admin javobi (Buyurtma #{order_id}):*\n\n{text}"
+        await context.bot.send_message(chat_id=target_user_id, text=msg, parse_mode="Markdown")
+        await update.message.reply_text("✅ Javob yuborildi.", reply_markup=get_main_keyboard(ADMIN_ID))
+    except Exception as e:
+        await update.message.reply_text(f"❌ Xabar yuborishda xato: {e}")
+        
+    return SELECT_CATEGORY
+
+# ── Narxlarni o'zgartirish Handlers ─────────────────
+async def price_edit_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    prices = load_prices()
+    kb = [cat["title"] for cat in prices["categories"]] + ["⬅️ Bekor qilish"]
+    await update.message.reply_text("Kategoriyani tanlang:", reply_markup=make_keyboard(kb, 1))
+    return PRICE_EDIT_CAT
+
+async def price_edit_cat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    if text == "⬅️ Bekor qilish": return await start(update, context)
+    
+    prices = load_prices()
+    category = next((c for c in prices["categories"] if c["title"] == text), None)
+    if not category: return PRICE_EDIT_CAT
+    
+    context.user_data["edit_cat_id"] = category["id"]
+    kb = [s["name"] for s in category["services"]] + ["⬅️ Orqaga"]
+    await update.message.reply_text(f"{text} uchun xizmatni tanlang:", reply_markup=make_keyboard(kb, 1))
+    return PRICE_EDIT_SVC
+
+async def price_edit_svc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    if text == "⬅️ Orqaga": return await price_edit_start(update, context)
+    
+    cat_id = context.user_data.get("edit_cat_id")
+    prices = load_prices()
+    cat = next(c for c in prices["categories"] if c["id"] == cat_id)
+    svc = next((s for s in cat["services"] if s["name"] == text), None)
+    if not svc: return PRICE_EDIT_SVC
+    
+    context.user_data["edit_svc_name"] = text
+    await update.message.reply_text(f"*{text}* uchun yangi narxni kiriting (faqat raqamda):", parse_mode="Markdown", reply_markup=ReplyKeyboardRemove())
+    return PRICE_EDIT_VAL
+
+async def price_edit_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    if not text.isdigit():
+        await update.message.reply_text("❌ Iltimos faqat raqam kiriting!")
+        return PRICE_EDIT_VAL
+    
+    new_price = int(text)
+    cat_id = context.user_data.get("edit_cat_id")
+    svc_name = context.user_data.get("edit_svc_name")
+    
+    prices = load_prices()
+    for cat in prices["categories"]:
+        if cat["id"] == cat_id:
+            for s in cat["services"]:
+                if s["name"] == svc_name:
+                    s["price"] = new_price
+                    break
+    
+    save_prices(prices)
+    await update.message.reply_text(f"✅ *{svc_name}* narxi {new_price:,.0f} so'm qilib belgilandi!".replace(",", " "), parse_mode="Markdown", reply_markup=get_main_keyboard(ADMIN_ID))
+    return SELECT_CATEGORY
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     user = update.effective_user
@@ -287,13 +397,16 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         elif text == "📢 Xabar yuborish":
             await update.message.reply_text("📢 Barchaga yubormoqchi bo'lgan xabaringizni yozing (yoki /cancel):", reply_markup=ReplyKeyboardRemove())
             return BROADCAST_STATE
+        elif text == "💰 Narxlarni o'zgartirish":
+            return await price_edit_start(update, context)
 
     # "Bog'lanish" va "Biz haqimizda" tugmalari
     if text == "📞 Bog'lanish":
         await update.message.reply_text(
             "📞 *Bog'lanish:*\n\n"
             "👨\u200d💻 Admin: @khusniddinkhamidov\n"
-            "📱 Telefon: Telegram orqali yozing\n\n"
+            "� Reklama bo'yicha: @TSH\\_Jamshidbek\n"
+            "�📱 Telefon: Telegram orqali yozing\n\n"
             "Ish vaqti: 09:00 — 22:00",
             parse_mode="Markdown"
         )
@@ -557,11 +670,16 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         f"📅 *Sana:* {sana}"
     )
     
-    try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
-        await context.bot.send_voice(chat_id=ADMIN_ID, voice=update.message.voice.file_id)
-    except Exception as e:
-        logger.error(f"Admin xabar yuborishda xato: {e}")
+        inline_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
+            [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
+        ])
+        
+        try:
+            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown", reply_markup=inline_kb)
+            await context.bot.send_voice(chat_id=ADMIN_ID, voice=update.message.voice.file_id)
+        except Exception as e:
+            logger.error(f"Admin xabar yuborishda xato: {e}")
 
     await update.message.reply_text(
         "✅ *Ovozli buyurtmangiz qabul qilindi!*\nTez orada bog'lanamiz. 🙏",
@@ -620,8 +738,13 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"📝 *Tafsilot:* \n{details}\n"
             f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         )
+        inline_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
+            [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
+        ])
+        
         try:
-            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_warning, parse_mode="Markdown")
+            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_warning, parse_mode="Markdown", reply_markup=inline_kb)
         except Exception as e:
             logger.error(f"Admin xabar yuborishda xato: {e}")
 
@@ -668,7 +791,12 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         )
         
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
+        inline_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
+            [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
+        ])
+        
+        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown", reply_markup=inline_kb)
         await update.message.reply_text(
             f"✅ *Buyurtmangiz qabul qilindi!*\n\n{details}\n\nTez orada bog'lanamiz. 🙏",
             parse_mode="Markdown",
@@ -696,9 +824,15 @@ def main():
     app.job_queue.run_repeating(keep_alive, interval=600, first=10)
 
     conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            CallbackQueryHandler(order_action_callback, pattern="^ord_")
+        ],
         states={
-            SELECT_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, category_selected)],
+            SELECT_CATEGORY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, category_selected),
+                CallbackQueryHandler(order_action_callback, pattern="^ord_")
+            ],
             SELECT_SUB: [MessageHandler(filters.TEXT & ~filters.COMMAND, sub_selected)],
             ENTER_DETAILS: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, enter_details),
@@ -709,6 +843,10 @@ def main():
             CALC_SERVICES: [MessageHandler(filters.TEXT & ~filters.COMMAND, calculator_step)],
             CALC_PLAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, plan_handler)],
             CALC_ADDONS: [MessageHandler(filters.TEXT & ~filters.COMMAND, addons_handler)],
+            PRICE_EDIT_CAT: [MessageHandler(filters.TEXT & ~filters.COMMAND, price_edit_cat)],
+            PRICE_EDIT_SVC: [MessageHandler(filters.TEXT & ~filters.COMMAND, price_edit_svc)],
+            PRICE_EDIT_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, price_edit_val)],
+            ANSWER_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, answer_handler)],
         },
         fallbacks=[CommandHandler("cancel", lambda u, c: start(u, c))],
         allow_reentry=True,

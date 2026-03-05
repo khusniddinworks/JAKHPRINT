@@ -1,0 +1,82 @@
+{
+    "categories": [
+        {
+            "id": "web",
+            "title": "🌐 Veb-saytlar",
+            "services": [
+                {
+                    "name": "📄 Oddiy sayt",
+                    "price": 1300000,
+                    "desc": "Landing page, 1-3 sahifali vizitka saytlar. Tez va arzon.",
+                    "tag": "💡 Eng mashhur"
+                },
+                {
+                    "name": "🖥️ Dashboardli sayt",
+                    "price": 3250000,
+                    "desc": "Boshqaruv paneli, ma'lumotlar bazasi, foydalanuvchilar tizimi.",
+                    "tag": ""
+                }
+            ]
+        },
+        {
+            "id": "bot",
+            "title": "🤖 Telegram Botlar",
+            "services": [
+                {
+                    "name": "💬 Oddiy chatbot",
+                    "price": 400000,
+                    "desc": "Savol-javob, ma'lumot tarqatish va avtomatik javoblar.",
+                    "tag": ""
+                },
+                {
+                    "name": "🤖 AI chatbot",
+                    "price": 500000,
+                    "desc": "Sun'iy intellekt bilan ishlash, aqlli javoblar.",
+                    "tag": ""
+                },
+                {
+                    "name": "📦 Zakaz bot",
+                    "price": 800000,
+                    "desc": "Buyurtma qabul qilish, adminga bildirishnoma va Excel hisobot.",
+                    "tag": "🔥 Eng ko'p sotilgan"
+                },
+                {
+                    "name": "🍔 Murakkab bot / WebApp",
+                    "price": 1500000,
+                    "desc": "WebApp, to'lov tizimi, murakkab funksiyalar va integratsiya.",
+                    "tag": ""
+                }
+            ]
+        },
+        {
+            "id": "print",
+            "title": "🖨️ Print Xizmatlari",
+            "services": [
+                {
+                    "name": "💳 Vizitka (100 ta)",
+                    "price": 50000,
+                    "desc": "100 dona, sifatli qog'oz, zamonaviy dizayn.",
+                    "tag": ""
+                },
+                {
+                    "name": "📩 Taklifnoma",
+                    "price": 5000,
+                    "desc": "1 dona, to'y va bayramlar uchun. Maxsus dizayn.",
+                    "tag": ""
+                },
+                {
+                    "name": "📰 Flayer / Buklet (100 ta)",
+                    "price": 100000,
+                    "desc": "100 dona, A5 format, rangli, reklama uchun.",
+                    "tag": ""
+                },
+                {
+                    "name": "📋 A4 Print",
+                    "price": 1000,
+                    "desc": "1 varaq, matn va rasm chop etish.",
+                    "tag": ""
+                }
+            ]
+        }
+    ]
+}
