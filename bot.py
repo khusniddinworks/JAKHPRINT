@@ -260,7 +260,7 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def calculator_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["calc_items"] = []
     
-    kb = [["🌐 Veb-sayt xizmatlari"], ["🤖 Bot xizmatlari"], ["✅ Hisoblash"], ["⬅️ Chiqish"]]
+    kb = ["🌐 Veb-sayt xizmatlari", "🤖 Bot xizmatlari", "✅ Hisoblash", "⬅️ Chiqish"]
     await update.message.reply_text(
         "🧮 *Kalkulyator bo'limiga xush kelibsiz!*\n\n"
         "Quyidagi bo'limlardan xizmatlarni tanlang va savatchaga qo'shing:",
@@ -319,7 +319,7 @@ async def plan_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return await start(update, context)
     
     if text == "Qani?":
-        kb = [["⚪️ Ekonom Tarif (-10%)"], ["🟡 Premium Tarif (-10%)"]]
+        kb = ["⚪️ Ekonom Tarif (-10%)", "🟡 Premium Tarif (-10%)"]
         await update.message.reply_text(
             "Tanlang:\n\n"
             "⚪️ *Ekonom:* Sifatli va tezkor xizmat.\n"
