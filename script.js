@@ -2,31 +2,34 @@ const tg = window.Telegram.WebApp;
 const orderBtn = document.getElementById('orderBtn');
 
 tg.expand();
-tg.MainButton.hide();
+tg.ready();
 
 let selectedServices = [];
 let totalPrice = 0;
 
-function selectService(name, price) {
+function selectService(el, name, price) {
     const existingIndex = selectedServices.indexOf(name);
+
+    // Haptic feedback (Vibratsiya)
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
     if (existingIndex > -1) {
         selectedServices.splice(existingIndex, 1);
         totalPrice -= price;
-        event.currentTarget.classList.remove('selected');
-        event.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-        event.currentTarget.style.boxShadow = 'none';
+        el.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        el.style.boxShadow = 'none';
+        el.classList.remove('selected');
     } else {
         selectedServices.push(name);
         totalPrice += price;
-        event.currentTarget.classList.add('selected');
-        event.currentTarget.style.borderColor = '#00f2fe';
-        event.currentTarget.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.4)';
+        el.style.borderColor = '#00f2fe';
+        el.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.4)';
+        el.classList.add('selected');
     }
 
     if (selectedServices.length > 0) {
         orderBtn.style.display = 'block';
-        orderBtn.innerText = `Tanlash (${totalPrice.toLocaleString('uz-UZ')} so'm)`;
+        orderBtn.innerText = `TANLASH (${totalPrice.toLocaleString('uz-UZ').replace(/,/g, ' ')} so'm)`;
     } else {
         orderBtn.style.display = 'none';
     }
