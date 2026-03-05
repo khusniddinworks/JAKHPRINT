@@ -55,7 +55,7 @@ ADDONS_PRICES = {
 }
 
 # ── Menyu ma'lumotlari ───────────────────────────────
-MAIN_BUTTONS = ["🌐 Veb-sayt", "🤖 Telegram Bot", "🖨️ Print xizmati", "🧮 Hisob-kitob"]
+MAIN_BUTTONS = []
 ADMIN_ONLY_BUTTONS = ["📊 Statistika", "📂 Excelni yuklab olish", "📢 Xabar yuborish"]
 
 SUB_BUTTONS = {
@@ -99,18 +99,13 @@ CONFIRM_KB = make_keyboard(CONFIRM_BUTTONS, columns=1)
 
 
 def get_main_keyboard(user_id):
-    buttons = MAIN_BUTTONS.copy()
     # GitHub Pages manzilingiz (Root)
     web_app_url = "https://khusniddinworks.github.io/JAKHPRINT/"
     
     keyboard = []
-    # Mini App tugmasi alohida qatorda
-    keyboard.append([KeyboardButton("🚀 Mini Appni ochish", web_app=WebAppInfo(url=web_app_url))])
-    
-    # Qolgan tugmalarni 2 ta ustun qilib joylash
-    for i in range(0, len(MAIN_BUTTONS), 2):
-        row = [KeyboardButton(b) for b in MAIN_BUTTONS[i:i+2]]
-        keyboard.append(row)
+    # Mini App tugmasi
+    keyboard.append([KeyboardButton("🚀 Xizmatlar va Narxlar", web_app=WebAppInfo(url=web_app_url))])
+    keyboard.append([KeyboardButton("📞 Bog'lanish"), KeyboardButton("ℹ️ Biz haqimizda")])
         
     if user_id == ADMIN_ID:
         for i in range(0, len(ADMIN_ONLY_BUTTONS), 2):
@@ -257,9 +252,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     msg = (
         f"👋 *Assalomu alaykum, {name}!*\n\n"
-        "Men orqali veb-sayt, bot yoki print xizmatlariga zakaz berishingiz mumkin.\n\n"
-        "👨‍💻 Admin bilan bog'lanish: @khusniddinkhamidov\n\n"
-        "Quyidagi xizmatlardan birini tanlang 👇"
+        "🚀 *Xizmatlar va Narxlar* tugmasini bosib, barcha xizmatlarimizni ko'ring va buyurtma bering!\n\n"
+        "👨‍💻 Admin: @khusniddinkhamidov"
     )
     if user.id == ADMIN_ID:
         count = order_count()
@@ -294,19 +288,29 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text("📢 Barchaga yubormoqchi bo'lgan xabaringizni yozing (yoki /cancel):", reply_markup=ReplyKeyboardRemove())
             return BROADCAST_STATE
 
-    if text == "🧮 Hisob-kitob":
-        context.user_data["calc_items"] = []
-        return await calculator_start(update, context)
-
-    if text not in MAIN_BUTTONS:
+    # "Bog'lanish" va "Biz haqimizda" tugmalari
+    if text == "📞 Bog'lanish":
+        await update.message.reply_text(
+            "📞 *Bog'lanish:*\n\n"
+            "👨\u200d💻 Admin: @khusniddinkhamidov\n"
+            "📱 Telefon: Telegram orqali yozing\n\n"
+            "Ish vaqti: 09:00 — 22:00",
+            parse_mode="Markdown"
+        )
+        return SELECT_CATEGORY
+    
+    if text == "ℹ️ Biz haqimizda":
+        await update.message.reply_text(
+            "ℹ️ *JAKHPRINT haqida:*\n\n"
+            "🌐 Veb-sayt yaratish\n"
+            "🤖 Telegram bot ishlab chiqish\n"
+            "🖨️ Print xizmatlari (vizitka, flayer, taklifnomalar)\n\n"
+            "Biz bilan ishlaganingiz uchun rahmat! �",
+            parse_mode="Markdown"
+        )
         return SELECT_CATEGORY
 
-    context.user_data["category"] = text
-    await update.message.reply_text(
-        f"{text} bo'yicha yo'nalishni tanlang 👇",
-        reply_markup=make_keyboard(SUB_BUTTONS[text], columns=1),
-    )
-    return SELECT_SUB
+    return SELECT_CATEGORY
 
 # ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
 async def calculator_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
