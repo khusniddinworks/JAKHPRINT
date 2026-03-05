@@ -7,6 +7,7 @@
     --text: #f8fafc;
     --glass-border: rgba(255, 255, 255, 0.1);
     --neon-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+    --success: #22c55e;
 }
 
 * {
@@ -14,6 +15,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Outfit', 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -21,62 +23,89 @@ body {
     background: radial-gradient(circle at top right, #1e293b, #0f172a);
     color: var(--text);
     min-height: 100vh;
-    padding: 20px;
+    padding: 16px;
     overflow-x: hidden;
 }
 
+/* ── Header ─────────────────────── */
 header {
     text-align: center;
-    padding: 2rem 0;
-    animation: fadeInDown 1s ease-out;
+    padding: 1.5rem 0 0.5rem;
+    animation: fadeInDown 0.8s ease-out;
 }
 
 .logo {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     font-weight: 800;
-    background: linear-gradient(to right, var(--primary), var(--accent));
+    background: linear-gradient(135deg, var(--primary), var(--accent));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
+.subtitle {
+    font-size: 0.8rem;
+    color: #64748b;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
-.subtitle {
+/* ── Cart Badge ─────────────────── */
+.cart-badge {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 10px 20px;
+    border-radius: 50px;
+    text-align: center;
+    font-weight: 600;
     font-size: 0.9rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    color: var(--primary);
+    border: 1px solid var(--glass-border);
+    margin: 10px auto;
+    max-width: 250px;
+    animation: fadeInDown 0.5s ease-out;
 }
 
+/* ── Container ──────────────────── */
 .container {
     max-width: 600px;
     margin: 0 auto;
 }
 
+/* ── Section Titles ─────────────── */
 .section-title {
-    font-size: 1.25rem;
-    margin: 2rem 0 1rem;
-    border-left: 4px solid var(--primary);
+    font-size: 1.15rem;
+    margin: 1.8rem 0 0.8rem;
+    border-left: 3px solid var(--primary);
     padding-left: 12px;
+    color: #e2e8f0;
 }
 
+/* ── Grid ───────────────────────── */
 .grid {
     display: grid;
-    gap: 16px;
+    gap: 12px;
 }
 
+/* ── Cards ──────────────────────── */
 .card {
     background: var(--card-bg);
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 16px;
+    padding: 16px 18px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    opacity: 0;
+    animation: fadeInUp 0.5s ease-out forwards;
 }
 
 .card::before {
@@ -86,99 +115,154 @@ header {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-    transition: 0.5s;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+    transition: 0.6s;
+}
+
+.card:active {
+    transform: scale(0.98);
 }
 
 .card:hover::before {
     left: 100%;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    border-color: var(--primary);
-    box-shadow: var(--neon-shadow);
+/* Tanlangan element */
+.card.selected {
+    border-color: var(--success) !important;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.08);
 }
 
+/* Check badge */
+.check-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 1.2rem;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.card.selected .check-badge {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Tag (mashhur label) */
+.tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(0, 242, 254, 0.12);
+    color: var(--primary);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+}
+
+/* ── Card Content ───────────────── */
 .card h3 {
-    font-size: 1.1rem;
-    margin-bottom: 8px;
+    font-size: 1rem;
+    margin-bottom: 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding-right: 30px;
 }
 
 .price {
     color: var(--primary);
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
 }
 
 .card p {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #94a3b8;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
+/* ── FAB Button ─────────────────── */
 .fab-btn {
     position: fixed;
-    bottom: 30px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(to right, var(--secondary), var(--primary));
+    background: linear-gradient(135deg, var(--success), #16a34a);
     color: white;
-    padding: 16px 32px;
+    padding: 14px 28px;
     border-radius: 50px;
     font-weight: 700;
-    box-shadow: 0 10px 25px rgba(79, 172, 254, 0.4);
+    font-size: 0.9rem;
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
     border: none;
     z-index: 100;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 1px;
-    transition: 0.3s;
+    transition: all 0.3s;
+    animation: pulseBtn 2s infinite;
+    width: calc(100% - 40px);
+    max-width: 400px;
 }
 
 .fab-btn:active {
     transform: translateX(-50%) scale(0.95);
+    animation: none;
 }
 
-/* Animations */
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
+/* ── Scroll Hint ────────────────── */
+.scroll-hint {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    color: #64748b;
+    z-index: 50;
+    animation: bounce 2s infinite;
+    transition: opacity 0.5s;
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ── Animations ─────────────────── */
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(25px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.card {
-    animation: fadeInUp 0.5s ease-out forwards;
+@keyframes pulseBtn {
+    0%, 100% { box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4); }
+    50% { box-shadow: 0 8px 35px rgba(34, 197, 94, 0.6); }
 }
 
-/* Mobile Responsive Adjustments */
-@media (max-width: 480px) {
-    body {
-        padding: 15px;
-    }
+@keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+}
 
-    .logo {
-        font-size: 2rem;
-    }
+@keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ── Mobile ─────────────────────── */
+@media (max-width: 380px) {
+    body { padding: 12px; }
+    .logo { font-size: 1.8rem; }
+    .card h3 { font-size: 0.9rem; }
+    .price { font-size: 0.8rem; }
+    .fab-btn { padding: 12px 20px; font-size: 0.8rem; }
 }

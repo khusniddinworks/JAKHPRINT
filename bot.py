@@ -201,16 +201,28 @@ def save_to_db(user_id, username, category, service, details):
 
 # ── Handlers ──────────────────────────────────────────
 def run_health_check():
-    """Render uchun kichik HTTP server."""
+    """Render uchun xavfsiz HTTP server. Faqat ruxsat berilgan fayllarni beradi."""
     port = int(os.environ.get("PORT", 8000))
     web_dir = os.path.dirname(__file__)
+    ALLOWED_EXTENSIONS = ('.html', '.css', '.js', '.png', '.jpg', '.ico', '.svg', '.webp')
     
-    class MyHandler(http.server.SimpleHTTPRequestHandler):
+    class SafeHandler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=web_dir, **kwargs)
+        
+        def do_GET(self):
+            # Faqat ruxsat berilgan fayl turlarini berish
+            if self.path == '/' or self.path == '/index.html':
+                super().do_GET()
+            elif any(self.path.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+                super().do_GET()
+            else:
+                self.send_response(403)
+                self.end_headers()
+                self.wfile.write(b'Forbidden')
 
-    with socketserver.TCPServer(("", port), MyHandler) as httpd:
-        logger.info(f"✅ Health server {port}-portda ishga tushdi.")
+    with socketserver.TCPServer(("", port), SafeHandler) as httpd:
+        logger.info(f"\u2705 Xavfsiz server {port}-portda ishga tushdi.")
         httpd.serve_forever()
 
 async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
@@ -273,7 +285,8 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return SELECT_CATEGORY
         elif text == "📂 Excelni yuklab olish":
             if os.path.exists(EXCEL_FILE):
-                await update.message.reply_document(document=open(EXCEL_FILE, "rb"), filename="works.xlsx")
+                with open(EXCEL_FILE, "rb") as f:
+                    await update.message.reply_document(document=f, filename="works.xlsx")
             else:
                 await update.message.reply_text("❌ Fayl topilmadi.")
             return SELECT_CATEGORY
@@ -297,10 +310,14 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 # ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
 async def calculator_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    kb = ["🌐 Veb-sayt xizmatlari", "🤖 Bot xizmatlari", "🖨️ Print xizmatlari", "✅ Hisoblash", "⬅️ Chiqish"]
+    items = context.user_data.get("calc_items", [])
+    cart_text = f"  (🛒 {len(items)} ta)" if items else ""
+    
+    kb = ["🌐 Veb-sayt xizmatlari", "🤖 Bot xizmatlari", "🖨️ Print xizmatlari", f"✅ Hisoblash{cart_text}", "🗑 Savatni tozalash", "⬅️ Chiqish"]
     await update.message.reply_text(
         "🧮 *Kalkulyator bo'limiga xush kelibsiz!*\n\n"
-        "Quyidagi bo'limlardan xizmatlarni tanlang va savatchaga qo'shing:",
+        "Quyidagi bo'limlardan xizmatlarni tanlang va savatchaga qo'shing:\n"
+        f"🛒 Savatda: *{len(items)} ta* xizmat",
         parse_mode="Markdown",
         reply_markup=make_keyboard(kb, columns=1)
     )
@@ -311,6 +328,11 @@ async def calculator_step(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     
     if text == "⬅️ Chiqish":
         return await start(update, context)
+    
+    if text == "🗑 Savatni tozalash":
+        context.user_data["calc_items"] = []
+        await update.message.reply_text("🗑 Savat tozalandi!")
+        return await calculator_start(update, context)
         
     if text == "🌐 Veb-sayt xizmatlari":
         kb = list(PRICES["🌐 Veb-sayt"].keys()) + ["⬅️ Orqaga"]
@@ -330,28 +352,33 @@ async def calculator_step(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if text == "⬅️ Orqaga":
         return await calculator_start(update, context)
 
-    # Savatga qo'shish
+    # Savatga qo'shish (dublikat tekshiruvi bilan)
     all_prices = {}
     for cat in PRICES.values():
         all_prices.update(cat)
         
     if text in all_prices:
-        context.user_data.setdefault("calc_items", []).append(text)
-        await update.message.reply_text(f"✅ *{text}* savatga qo'shildi.", parse_mode="Markdown")
+        items = context.user_data.setdefault("calc_items", [])
+        if text in items:
+            await update.message.reply_text(f"⚠️ *{text}* allaqachon savatda bor!", parse_mode="Markdown")
+        else:
+            items.append(text)
+            await update.message.reply_text(f"✅ *{text}* savatga qo'shildi. (🛒 {len(items)} ta)", parse_mode="Markdown")
         return CALC_SERVICES
 
-    if text == "✅ Hisoblash":
+    if "✅ Hisoblash" in text:
         items = context.user_data.get("calc_items", [])
         if not items:
-            await update.message.reply_text("⚠️ Savatchangiz bo'sh!")
-            return CALC_SERVICES
+            await update.message.reply_text("⚠️ Savatchangiz bo'sh! Avval xizmat tanlang.")
+            return await calculator_start(update, context)
         
-        total = sum(all_prices[i] for i in items)
+        total = sum(all_prices.get(i, 0) for i in items)
         context.user_data["calc_total"] = total
         
         msg = "🛒 *Siz tanlagan xizmatlar:*\n\n"
-        for i in items:
-            msg += f"• {i}\n"
+        for idx, i in enumerate(items, 1):
+            price = all_prices.get(i, 0)
+            msg += f"{idx}. {i} — {price:,.0f} so'm\n".replace(",", " ")
         msg += f"\n💰 *Jami:* {total:,.0f} so'm".replace(",", " ")
         msg += "\n\n🎁 Siz uchun ajoyib taklifim bor! Nima deysiz?"
         
@@ -425,7 +452,7 @@ async def final_calc_result(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     final_total = discounted + addons_total
     
     summary = (
-        f"🏁 *YAKUNIY HISOBOBT*\n\n"
+        f"🏁 *YAKUNIY HISOBOT*\n\n"
         f"📦 *Xizmatlar:* {len(items)} ta\n"
         f"📊 *Tarif:* {plan}\n"
         f"💰 *Asosiy narx:* {total:,.0f} so'm\n"
@@ -454,16 +481,24 @@ async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     users = get_all_users()
     count = 0
+    failed = 0
     await update.message.reply_text(f"🚀 {len(users)} ta foydalanuvchiga xabar yuborish boshlandi...")
 
+    import asyncio
     for uid in users:
         try:
             await context.bot.copy_message(chat_id=uid, from_chat_id=admin_id, message_id=msg.message_id)
             count += 1
         except Exception:
+            failed += 1
             continue
+        await asyncio.sleep(0.05)  # Telegram rate limit himoyasi
     
-    await update.message.reply_text(f"✅ Xabar {count} ta foydalanuvchiga yetkazildi.", reply_markup=get_main_keyboard(admin_id))
+    await update.message.reply_text(
+        f"✅ Xabar {count} ta foydalanuvchiga yetkazildi.\n"
+        f"{'❌ ' + str(failed) + ' ta yuborilmadi.' if failed else ''}",
+        reply_markup=get_main_keyboard(admin_id)
+    )
     return SELECT_CATEGORY
 
 async def sub_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -601,33 +636,46 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mini Appdan kelgan ma'lumotlarni qayta ishlash."""
-    data = json.loads(update.effective_message.web_app_data.data)
-    services = data.get("services", [])
-    total = data.get("total", 0)
-    user = update.effective_user
-    username = user.username or user.first_name
-    
-    details = "🛒 Mini App orqali tanlangan xizmatlar:\n"
-    for s in services:
-        details += f"• {s}\n"
-    details += f"\n💰 Jami: {total:,.0f} so'm".replace(",", " ")
+    try:
+        data = json.loads(update.effective_message.web_app_data.data)
+        services = data.get("services", [])
+        total = data.get("total", 0)
+        user = update.effective_user
+        username = user.username or user.first_name
+        
+        if not services:
+            await update.message.reply_text("⚠️ Xizmat tanlanmadi.", reply_markup=get_main_keyboard(user.id))
+            return
+        
+        details = "🛒 Mini App orqali tanlangan xizmatlar:\n"
+        for s in services:
+            details += f"• {s}\n"
+        details += f"\n💰 Jami: {total:,.0f} so'm".replace(",", " ")
 
-    order_id = save_to_excel(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
-    save_to_db(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
+        order_id = save_to_excel(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
+        save_to_db(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
+        save_user(user.id, user.username, user.first_name)
 
-    admin_msg = (
-        f"🌟 *MINI APP ORQALI YANGI BUYURTMA #{order_id}*\n\n"
-        f"👤 *Mijoz:* {user.mention_markdown(name=username)}\n"
-        f"📝 *Tafsilot:* \n{details}\n"
-        f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    )
-    
-    await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
-    await update.message.reply_text(
-        f"✅ *Buyurtmangiz qabul qilindi!*\n\n{details}\n\nTez orada bog'lanamiz. 🙏",
-        parse_mode="Markdown",
-        reply_markup=get_main_keyboard(user.id)
-    )
+        admin_msg = (
+            f"🌟 *MINI APP ORQALI YANGI BUYURTMA #{order_id}*\n\n"
+            f"👤 *Mijoz:* {user.mention_markdown(name=username)}\n"
+            f"🆔 *ID:* `{user.id}`\n"
+            f"📝 *Tafsilot:* \n{details}\n"
+            f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        )
+        
+        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
+        await update.message.reply_text(
+            f"✅ *Buyurtmangiz qabul qilindi!*\n\n{details}\n\nTez orada bog'lanamiz. 🙏",
+            parse_mode="Markdown",
+            reply_markup=get_main_keyboard(user.id)
+        )
+    except Exception as e:
+        logger.error(f"Mini App xatosi: {e}")
+        await update.message.reply_text(
+            "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+            reply_markup=get_main_keyboard(update.effective_user.id)
+        )
 
 def main():
     init_db()

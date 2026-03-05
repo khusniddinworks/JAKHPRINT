@@ -1,5 +1,8 @@
 const tg = window.Telegram.WebApp;
 const orderBtn = document.getElementById('orderBtn');
+const cartBadge = document.getElementById('cartBadge');
+const cartCount = document.getElementById('cartCount');
+const scrollHint = document.getElementById('scrollHint');
 
 tg.expand();
 tg.ready();
@@ -7,30 +10,55 @@ tg.ready();
 let selectedServices = [];
 let totalPrice = 0;
 
+// Scroll hint — pastga sursalar yo'qoladi
+window.addEventListener('scroll', () => {
+    if (window.scrollY > 100 && scrollHint) {
+        scrollHint.style.opacity = '0';
+        setTimeout(() => scrollHint.style.display = 'none', 500);
+    }
+});
+
+function formatPrice(num) {
+    return num.toLocaleString('uz-UZ').replace(/,/g, ' ');
+}
+
 function selectService(el, name, price) {
     const existingIndex = selectedServices.indexOf(name);
 
-    // Haptic feedback (Vibratsiya)
-    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    // Haptic feedback
+    if (tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+    }
 
     if (existingIndex > -1) {
+        // Olib tashlash
         selectedServices.splice(existingIndex, 1);
         totalPrice -= price;
-        el.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-        el.style.boxShadow = 'none';
         el.classList.remove('selected');
     } else {
+        // Qo'shish
         selectedServices.push(name);
         totalPrice += price;
-        el.style.borderColor = '#00f2fe';
-        el.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.4)';
         el.classList.add('selected');
     }
 
+    updateUI();
+}
+
+function updateUI() {
+    // Cart badge
     if (selectedServices.length > 0) {
+        cartBadge.style.display = 'block';
+        cartCount.textContent = selectedServices.length;
+
+        // Scroll hint yashirish
+        if (scrollHint) scrollHint.style.display = 'none';
+
+        // Buyurtma tugmasi
         orderBtn.style.display = 'block';
-        orderBtn.innerText = `TANLASH (${totalPrice.toLocaleString('uz-UZ').replace(/,/g, ' ')} so'm)`;
+        orderBtn.textContent = `BUYURTMA BERISH (${formatPrice(totalPrice)} so'm)`;
     } else {
+        cartBadge.style.display = 'none';
         orderBtn.style.display = 'none';
     }
 }
@@ -38,16 +66,24 @@ function selectService(el, name, price) {
 function sendOrder() {
     if (selectedServices.length === 0) return;
 
+    // Haptic
+    if (tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+    }
+
     const data = {
         services: selectedServices,
         total: totalPrice
     };
 
-    // Telegramga ma'lumotni yuborish
     tg.sendData(JSON.stringify(data));
     tg.close();
 }
 
-// Telegram mavzusiga moslashish (Ixtiyoriy)
-document.body.style.setProperty('--bg', tg.themeParams.bg_color || '#0f172a');
-document.body.style.setProperty('--text', tg.themeParams.text_color || '#f8fafc');
+// Telegram mavzusiga moslashish
+if (tg.themeParams) {
+    const bg = tg.themeParams.bg_color;
+    const text = tg.themeParams.text_color;
+    if (bg) document.body.style.setProperty('--bg', bg);
+    if (text) document.body.style.setProperty('--text', text);
+}

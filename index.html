@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JAKHPRINT | Web App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAKHPRINT | Premium Digital Services</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -16,48 +16,93 @@
         <div class="subtitle">Premium Digital Services</div>
     </header>
 
-    <div class="container">
-        <h2 class="section-title">🌐 Veb-saytlar</h2>
-        <div class="grid">
-            <div class="card" onclick="selectService(this, '📄 Oddiy sayt', 1300000)">
-                <h3>📄 Oddiy sayt <span class="price">1 300 000 so'm</span></h3>
-                <p>Landing page, 1-3 sahifali vizitka saytlar.</p>
-            </div>
-            <div class="card" onclick="selectService(this, '🖥️ Dashboardli sayt', 3250000)">
-                <h3>🖥️ Dashboardli sayt <span class="price">3 250 000 so'm</span></h3>
-                <p>Boshqaruv paneli va ma'lumotlar bazasiga ega murakkab sayt.</p>
-            </div>
-        </div>
-
-        <h2 class="section-title">🤖 Telegram Botlar</h2>
-        <div class="grid">
-            <div class="card" onclick="selectService(this, '💬 Chatbot', 400000)">
-                <h3>💬 Oddiy chatbot <span class="price">400 000 so'm</span></h3>
-                <p>Savol-javob va ma'lumot tarqatuvchi bot.</p>
-            </div>
-            <div class="card" onclick="selectService(this, '📦 Zakaz bot', 800000)">
-                <h3>📦 Zakaz bot <span class="price">800 000 so'm</span></h3>
-                <p>Buyurtma qabul qilish va adminga bildirishnoma yuborish.</p>
-            </div>
-        </div>
-
-        <h2 class="section-title">🖨️ Print Xizmatlari</h2>
-        <div class="grid">
-            <div class="card" onclick="selectService(this, '💳 Vizitka (100 ta)', 50000)">
-                <h3>💳 Vizitka <span class="price">50 000 so'm</span></h3>
-                <p>100 dona, sifatli dizayn va qog'oz.</p>
-            </div>
-            <div class="card" onclick="selectService(this, '📰 Flayer (100 ta)', 100000)">
-                <h3>📰 Flayer <span class="price">100 000 so'm</span></h3>
-                <p>100 dona, rangli, A5 format.</p>
-            </div>
-        </div>
-
-        <div style="height: 100px;"></div>
+    <!-- Savatcha counter -->
+    <div id="cartBadge" class="cart-badge" style="display:none;">
+        🛒 <span id="cartCount">0</span> ta tanlandi
     </div>
 
+    <div class="container">
+        <!-- Veb-saytlar -->
+        <h2 class="section-title">🌐 Veb-saytlar</h2>
+        <div class="grid">
+            <div class="card" onclick="selectService(this, '📄 Oddiy sayt', 1300000)" style="animation-delay: 0.1s">
+                <div class="check-badge">✅</div>
+                <h3>📄 Oddiy sayt <span class="price">1 300 000 so'm</span></h3>
+                <p>Landing page, 1-3 sahifali vizitka saytlar. Tez va arzon.</p>
+                <div class="tag">💡 Eng mashhur</div>
+            </div>
+            <div class="card" onclick="selectService(this, '🖥️ Dashboardli sayt', 3250000)"
+                style="animation-delay: 0.2s">
+                <div class="check-badge">✅</div>
+                <h3>🖥️ Dashboardli sayt <span class="price">3 250 000 so'm</span></h3>
+                <p>Boshqaruv paneli, ma'lumotlar bazasi, foydalanuvchilar tizimi.</p>
+            </div>
+        </div>
+
+        <!-- Telegram Botlar -->
+        <h2 class="section-title">🤖 Telegram Botlar</h2>
+        <div class="grid">
+            <div class="card" onclick="selectService(this, '💬 Oddiy chatbot', 400000)" style="animation-delay: 0.15s">
+                <div class="check-badge">✅</div>
+                <h3>💬 Oddiy chatbot <span class="price">400 000 so'm</span></h3>
+                <p>Savol-javob, ma'lumot tarqatish va avtomatik javoblar.</p>
+            </div>
+            <div class="card" onclick="selectService(this, '🤖 AI chatbot', 500000)" style="animation-delay: 0.2s">
+                <div class="check-badge">✅</div>
+                <h3>🤖 AI chatbot <span class="price">500 000 so'm</span></h3>
+                <p>Sun'iy intellekt bilan ishlash, aqlli javoblar.</p>
+            </div>
+            <div class="card" onclick="selectService(this, '📦 Zakaz bot', 800000)" style="animation-delay: 0.25s">
+                <div class="check-badge">✅</div>
+                <h3>📦 Zakaz bot <span class="price">800 000 so'm</span></h3>
+                <p>Buyurtma qabul qilish, adminga bildirishnoma va Excel hisobot.</p>
+                <div class="tag">🔥 Eng ko'p sotilgan</div>
+            </div>
+            <div class="card" onclick="selectService(this, '🍔 Murakkab bot / WebApp', 1500000)"
+                style="animation-delay: 0.3s">
+                <div class="check-badge">✅</div>
+                <h3>🍔 Murakkab bot <span class="price">1 500 000 so'm</span></h3>
+                <p>WebApp, to'lov tizimi, murakkab funksiyalar va integratsiya.</p>
+            </div>
+        </div>
+
+        <!-- Print Xizmatlari -->
+        <h2 class="section-title">🖨️ Print Xizmatlari</h2>
+        <div class="grid">
+            <div class="card" onclick="selectService(this, '💳 Vizitka (100 ta)', 50000)"
+                style="animation-delay: 0.15s">
+                <div class="check-badge">✅</div>
+                <h3>💳 Vizitka <span class="price">50 000 so'm</span></h3>
+                <p>100 dona, sifatli qog'oz, zamonaviy dizayn.</p>
+            </div>
+            <div class="card" onclick="selectService(this, '📩 Taklifnoma', 5000)" style="animation-delay: 0.2s">
+                <div class="check-badge">✅</div>
+                <h3>📩 Taklifnoma <span class="price">5 000 so'm</span></h3>
+                <p>1 dona, to'y va bayramlar uchun. Maxsus dizayn.</p>
+            </div>
+            <div class="card" onclick="selectService(this, '📰 Flayer (100 ta)', 100000)"
+                style="animation-delay: 0.25s">
+                <div class="check-badge">✅</div>
+                <h3>📰 Flayer / Buklet <span class="price">100 000 so'm</span></h3>
+                <p>100 dona, A5 format, rangli, reklama uchun.</p>
+            </div>
+            <div class="card" onclick="selectService(this, '📋 A4 Print', 1000)" style="animation-delay: 0.3s">
+                <div class="check-badge">✅</div>
+                <h3>📋 A4 Print <span class="price">1 000 so'm</span></h3>
+                <p>1 varaq, matn va rasm chop etish.</p>
+            </div>
+        </div>
+
+        <!-- Scroll uchun bo'sh joy -->
+        <div style="height: 120px;"></div>
+    </div>
+
+    <!-- Scroll indikatori -->
+    <div id="scrollHint" class="scroll-hint">↓ Pastga suring</div>
+
+    <!-- Buyurtma tugmasi -->
     <button id="orderBtn" class="fab-btn" onclick="sendOrder()" style="display: none;">
-        Buyurtma berish (0 so'm)
+        BUYURTMA BERISH (0 so'm)
     </button>
 
     <script src="script.js"></script>
