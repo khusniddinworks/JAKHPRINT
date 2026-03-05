@@ -40,6 +40,12 @@ PRICES = {
         "📦 Zakaz bot (800.000 so'm)": 800000,
         "🍔 Murakkab bot / WebApp (1.500.000 so'm)": 1500000,
     },
+    "🖨️ Print xizmatlari": {
+        "💳 Vizitka (100 ta / 50.000 so'm)": 50000,
+        "📩 Taklifnoma (o'rtacha 5.000 so'm)": 5000,
+        "📰 Flayer (100 ta / 100.000 so'm)": 100000,
+        "📋 A4 Print (1.000 so'm)": 1000,
+    },
 }
 
 ADDONS_PRICES = {
@@ -270,7 +276,7 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 # ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
 async def calculator_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    kb = ["🌐 Veb-sayt xizmatlari", "🤖 Bot xizmatlari", "✅ Hisoblash", "⬅️ Chiqish"]
+    kb = ["🌐 Veb-sayt xizmatlari", "🤖 Bot xizmatlari", "🖨️ Print xizmatlari", "✅ Hisoblash", "⬅️ Chiqish"]
     await update.message.reply_text(
         "🧮 *Kalkulyator bo'limiga xush kelibsiz!*\n\n"
         "Quyidagi bo'limlardan xizmatlarni tanlang va savatchaga qo'shing:",
@@ -295,11 +301,19 @@ async def calculator_step(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text("Bot turi:", reply_markup=make_keyboard(kb, columns=1))
         return CALC_SERVICES
 
+    if text == "🖨️ Print xizmatlari":
+        kb = list(PRICES["🖨️ Print xizmatlari"].keys()) + ["⬅️ Orqaga"]
+        await update.message.reply_text("Print turi:", reply_markup=make_keyboard(kb, columns=1))
+        return CALC_SERVICES
+
     if text == "⬅️ Orqaga":
         return await calculator_start(update, context)
 
     # Savatga qo'shish
-    all_prices = {**PRICES["🌐 Veb-sayt"], **PRICES["🤖 Telegram Bot"]}
+    all_prices = {}
+    for cat in PRICES.values():
+        all_prices.update(cat)
+        
     if text in all_prices:
         context.user_data.setdefault("calc_items", []).append(text)
         await update.message.reply_text(f"✅ *{text}* savatga qo'shildi.", parse_mode="Markdown")
