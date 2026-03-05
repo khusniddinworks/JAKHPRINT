@@ -29,7 +29,7 @@ EXCEL_FILE = os.path.join(os.path.dirname(__file__), "works.xlsx")
 # ── States ───────────────────────────────────────────
 (SELECT_CATEGORY, SELECT_SUB, ENTER_DETAILS, CONFIRM_STATE, 
  BROADCAST_STATE, CALC_START, CALC_SERVICES, CALC_PLAN, CALC_ADDONS,
- PRICE_EDIT_CAT, PRICE_EDIT_SVC, PRICE_EDIT_VAL, ANSWER_STATE) = range(13)
+ PRICE_EDIT_CAT, PRICE_EDIT_SVC, PRICE_EDIT_VAL, ANSWER_STATE, WAITING_PHONE) = range(14)
 
 # ── Narxlar fayli ─────────────────────────────────
 PRICES_FILE = os.path.join(os.path.dirname(__file__), "prices.json")
@@ -44,60 +44,56 @@ def save_prices(data):
     with open(PRICES_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# ── Narxlar va Ma'lumotlar ───────────────────────────
-USD_TO_UZS = 13000
+# ── Narxlar va Ma'lumotlar (Dinamik) ───────────────────
+PRICES = {}
+ADDONS_PRICES = {}
+SUB_BUTTONS = {}
 
-PRICES = {
-    "🌐 Veb-sayt": {
-        "📄 Oddiy sayt (100$)": 100 * USD_TO_UZS,
-        "🖥️ Dashboardli sayt (250$)": 250 * USD_TO_UZS,
-    },
-    "🤖 Telegram Bot": {
-        "💬 Oddiy chatbot (400.000 so'm)": 400000,
-        "🤖 Ai chat bot (500.000 so'm)": 500000,
-        "📦 Zakaz bot (800.000 so'm)": 800000,
-        "🍔 Murakkab bot / WebApp (1.500.000 so'm)": 1500000,
-    },
-    "🖨️ Print xizmatlari": {
-        "💳 Vizitka (100 ta / 50.000 so'm)": 50000,
-        "📩 Taklifnoma (o'rtacha 5.000 so'm)": 5000,
-        "📰 Flayer (100 ta / 100.000 so'm)": 100000,
-        "📋 A4 Print (1.000 so'm)": 1000,
-    },
-}
+def sync_prices():
+    """prices.json dan hamma ma'lumotlarni global o'zgaruvchilarga yuklaydi."""
+    global PRICES, ADDONS_PRICES, SUB_BUTTONS
+    try:
+        data = load_prices()
+        new_prices = {}
+        new_subs = {}
+        
+        for cat in data["categories"]:
+            cat_title = cat["title"]
+            services_dict = {}
+            subs_list = []
+            
+            for svc in cat["services"]:
+                # Kalkulyator va Bot uchun nom: "Xizmat nomi (Narxi so'm!)"
+                # Biz prices.json dagi formatni saqlaymiz, lekin bot menyusi uchun chiroyli ko'rinish beramiz
+                display_name = f"{svc['name']} ({svc['price']:,.0f} so'm)".replace(",", " ")
+                services_dict[display_name] = svc["price"]
+                subs_list.append(display_name)
+                
+                # Maxsus buyurtma har doim bo'lishi kerak
+                if cat["id"] in ["web", "bot"]:
+                    if "⚙️ Maxsus buyurtma" not in subs_list:
+                        subs_list.append("⚙️ Maxsus buyurtma")
+            
+            subs_list.append("⬅️ Orqaga")
+            new_prices[cat_title] = services_dict
+            new_subs[cat_title] = subs_list
+            
+        PRICES = new_prices
+        SUB_BUTTONS = new_subs
+        
+        # Addonlarni (vizitka/flayer) print kategoriyasidan qidiramiz
+        for cat in data["categories"]:
+            if cat["id"] == "print":
+                for svc in cat["services"]:
+                    if "Vizitka" in svc["name"] or "Flayer" in svc["name"]:
+                        ADDONS_PRICES[svc["name"]] = svc["price"]
+        
+        logger.info("✅ Narxlar muvaffaqiyatli sinxronizatsiya qilindi.")
+    except Exception as e:
+        logger.error(f"❌ Narxlarni sinxronlashda xato: {e}")
 
-ADDONS_PRICES = {
-    "💳 Vizitka (100 ta)": 50000,
-    "📰 Flayer (100 ta)": 100000
-}
-
-# ── Menyu ma'lumotlari ───────────────────────────────
-MAIN_BUTTONS = []
-ADMIN_ONLY_BUTTONS = ["📊 Statistika", "📂 Excelni yuklab olish", "📢 Xabar yuborish", "💰 Narxlarni o'zgartirish"]
-
-SUB_BUTTONS = {
-    "🌐 Veb-sayt": [
-        "📄 Oddiy sayt (100$)",
-        "🖥️ Dashboardli sayt (250$)",
-        "⚙️ Maxsus buyurtma",
-        "⬅️ Orqaga",
-    ],
-    "🤖 Telegram Bot": [
-        "💬 Oddiy chatbot (400.000 so'm)",
-        "🤖 Ai chat bot (500.000 so'm)",
-        "📦 Zakaz bot (800.000 so'm)",
-        "🍔 Murakkab bot / WebApp (1.500.000 so'm)",
-        "⚙️ Maxsus buyurtma",
-        "⬅️ Orqaga",
-    ],
-    "🖨️ Print xizmati": [
-        "💳 Vizitka (100 ta / 50.000 so'm)",
-        "📩 Taklifnoma (3.000 - 50.000 so'm)",
-        "📰 Flayer / Buklet (100.000 so'm)",
-        "📋 A4 formatdagi print (800 - 2.000 so'm)",
-        "⬅️ Orqaga",
-    ],
-}
+# Dastlabki yuklash
+sync_prices()
 
 CONFIRM_BUTTONS = ["✅ Tasdiqlash", "✏️ Tahrirlash", "❌ Bekor qilish"]
 
@@ -351,6 +347,7 @@ async def price_edit_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     break
     
     save_prices(prices)
+    sync_prices() # Global o'zgaruvchilarni yangilash
     await update.message.reply_text(f"✅ *{svc_name}* narxi {new_price:,.0f} so'm qilib belgilandi!".replace(",", " "), parse_mode="Markdown", reply_markup=get_main_keyboard(ADMIN_ID))
     return SELECT_CATEGORY
 
@@ -452,17 +449,20 @@ async def calculator_step(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return await calculator_start(update, context)
         
     if text == "🌐 Veb-sayt xizmatlari":
-        kb = list(PRICES["🌐 Veb-sayt"].keys()) + ["⬅️ Orqaga"]
+        cat_key = next((k for k in SUB_BUTTONS if "Veb" in k), "🌐 Veb-saytlar")
+        kb = SUB_BUTTONS.get(cat_key, [])
         await update.message.reply_text("Veb-sayt turi:", reply_markup=make_keyboard(kb, columns=1))
         return CALC_SERVICES
         
     if text == "🤖 Bot xizmatlari":
-        kb = list(PRICES["🤖 Telegram Bot"].keys()) + ["⬅️ Orqaga"]
+        cat_key = next((k for k in SUB_BUTTONS if "Bot" in k), "🤖 Telegram Botlar")
+        kb = SUB_BUTTONS.get(cat_key, [])
         await update.message.reply_text("Bot turi:", reply_markup=make_keyboard(kb, columns=1))
         return CALC_SERVICES
 
     if text == "🖨️ Print xizmatlari":
-        kb = list(PRICES["🖨️ Print xizmatlari"].keys()) + ["⬅️ Orqaga"]
+        cat_key = next((k for k in SUB_BUTTONS if "Print" in k), "🖨️ Print Xizmatlari")
+        kb = SUB_BUTTONS.get(cat_key, [])
         await update.message.reply_text("Print turi:", reply_markup=make_keyboard(kb, columns=1))
         return CALC_SERVICES
 
@@ -497,29 +497,23 @@ async def calculator_step(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             price = all_prices.get(i, 0)
             msg += f"{idx}. {i} — {price:,.0f} so'm\n".replace(",", " ")
         msg += f"\n💰 *Jami:* {total:,.0f} so'm".replace(",", " ")
-        msg += "\n\n🎁 Siz uchun ajoyib taklifim bor! Nima deysiz?"
+        msg += "\n\n🎁 *DIQQAT: Barcha xizmatlarga 10% chegirma e'lon qilindi!*"
         
-        await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=make_keyboard(["Qani?", "❌ Bekor qilish"], columns=1))
-        return CALC_PLAN
+        await update.message.reply_text(
+            msg + "\n\nDavom etishni istaysizmi?", 
+            parse_mode="Markdown", 
+            reply_markup=make_keyboard(["✅ Davom etish", "❌ Bekor qilish"], columns=1)
+        )
+        return CALC_PLAN # Use existing state but modified flow
 
 async def plan_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = update.message.text
     if text == "❌ Bekor qilish":
         return await start(update, context)
     
-    if text == "Qani?":
-        kb = ["⚪️ Ekonom Tarif (-10%)", "🟡 Premium Tarif (-10%)"]
-        await update.message.reply_text(
-            "Tanlang:\n\n"
-            "⚪️ *Ekonom:* Sifatli va tezkor xizmat.\n"
-            "🟡 *Premium:* Dizayn + Admin panel + Alohida e'tibor.",
-            parse_mode="Markdown",
-            reply_markup=make_keyboard(kb, columns=1)
-        )
-        return CALC_PLAN
-
-    if "Tarif" in text:
-        context.user_data["calc_plan"] = text
+    if text == "✅ Davom etish":
+        # Skip tariff selection and go to result (or addons if needed)
+        # Check if addons are needed
         await update.message.reply_text(
             "Bunga qo'shimcha mahsulotlar ham qo'shamizmi?\n(Ixtiyoriy, tanlamasangiz 'O'tkazib yuborish'ni bosing)",
             reply_markup=make_keyboard(["💳 Vizitka (100 ta)", "📰 Flayer (100 ta)", "➡️ O'tkazib yuborish"], columns=1)
@@ -555,25 +549,14 @@ async def final_calc_result(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     items = context.user_data.get("calc_items", [])
     addons = context.user_data.get("calc_addons", {})
 
-    # 10% chegirma
-    discounted = total * 0.9
-    
-    # Addonlar narxi
-    addons_total = 0
-    addons_text = ""
-    for k, v in addons.items():
-        price = (v // 100) * ADDONS_PRICES[k]
-        addons_total += price
-        addons_text += f"• {k}: {v} ta ({price:,.0f} so'm)\n".replace(",", " ")
-
-    final_total = discounted + addons_total
+    # Final price summary (tariffs removed as requested)
+    final_total = total + addons_total
     
     summary = (
-        f"🏁 *YAKUNIY HISOBOT*\n\n"
+        f"🏁 *YAKUNIY BUYURTMA HISOBOTI*\n\n"
+        "🔥 *10% CHEGIRMA O'RNATILGAN!* 🎁\n\n"
         f"📦 *Xizmatlar:* {len(items)} ta\n"
-        f"📊 *Tarif:* {plan}\n"
-        f"💰 *Asosiy narx:* {total:,.0f} so'm\n"
-        f"🔥 *Chegirma (10%):* -{(total*0.1):,.0f} so'm\n"
+        f"💰 *Asosiy xizmatlar:* {total:,.0f} so'm\n"
     ).replace(",", " ")
     
     if addons_text:
@@ -623,9 +606,13 @@ async def sub_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     if text == "⬅️ Orqaga":
         return await start(update, context)
 
+    # Global SUB_BUTTONS dagi kategoriyani topish
     category = context.user_data.get("category", "")
-    if category and text in SUB_BUTTONS.get(category, []):
+    matching_cat = next((k for k in SUB_BUTTONS if k == category or category in k), None)
+    
+    if matching_cat and text in SUB_BUTTONS.get(matching_cat, []):
         context.user_data["service"] = text
+        context.user_data["category"] = matching_cat # Nomni to'g'rilab saqlash
         
         msg = f"*{text}* tanlandi ✅\n\n✍️ Buyurtmangiz haqida batafsil yozing:"
         if "Maxsus buyurtma" in text or "A4 formatdagi boshqa print" in text:
@@ -761,53 +748,97 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text("❌ Bekor qilindi.", reply_markup=get_main_keyboard(user.id))
         return SELECT_CATEGORY
 
-async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Mini Appdan kelgan ma'lumotlarni qayta ishlash."""
     try:
         data = json.loads(update.effective_message.web_app_data.data)
         services = data.get("services", [])
         total = data.get("total", 0)
         user = update.effective_user
-        username = user.username or user.first_name
         
         if not services:
             await update.message.reply_text("⚠️ Xizmat tanlanmadi.", reply_markup=get_main_keyboard(user.id))
-            return
+            return SELECT_CATEGORY
         
         details = "🛒 Mini App orqali tanlangan xizmatlar:\n"
         for s in services:
             details += f"• {s}\n"
         details += f"\n💰 Jami: {total:,.0f} so'm".replace(",", " ")
 
-        order_id = save_to_excel(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
-        save_to_db(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
-        save_user(user.id, user.username, user.first_name)
+        # Ma'lumotlarni vaqtincha saqlash
+        context.user_data["pending_order"] = {
+            "category": "MINI APP",
+            "service": "Ko'p tarmoqli",
+            "details": details
+        }
 
-        admin_msg = (
-            f"🌟 *MINI APP ORQALI YANGI BUYURTMA #{order_id}*\n\n"
-            f"👤 *Mijoz:* {user.mention_markdown(name=username)}\n"
-            f"🆔 *ID:* `{user.id}`\n"
-            f"📝 *Tafsilot:* \n{details}\n"
-            f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        )
-        
-        inline_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
-            [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
-        ])
-        
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown", reply_markup=inline_kb)
+        # Telefon raqamini so'rash
+        kb = [[KeyboardButton("📱 Telefon raqamni yuborish", request_contact=True)]]
         await update.message.reply_text(
-            f"✅ *Buyurtmangiz qabul qilindi!*\n\n{details}\n\nTez orada bog'lanamiz. 🙏",
-            parse_mode="Markdown",
-            reply_markup=get_main_keyboard(user.id)
+            "📞 Buyurtmani yakunlash uchun telefon raqamingizni yuboring:",
+            reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
         )
+        return WAITING_PHONE
+        
     except Exception as e:
         logger.error(f"Mini App xatosi: {e}")
         await update.message.reply_text(
             "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
             reply_markup=get_main_keyboard(update.effective_user.id)
         )
+        return SELECT_CATEGORY
+
+async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Foydalanuvchi yuborgan telefon raqamini qabul qilish va buyurtmani yakunlash."""
+    contact = update.message.contact
+    user = update.effective_user
+    username = user.username or user.first_name
+    phone = contact.phone_number
+    
+    order_data = context.user_data.get("pending_order")
+    if not order_data:
+        await update.message.reply_text("❌ Buyurtma ma'lumotlari topilmadi.", reply_markup=get_main_keyboard(user.id))
+        return SELECT_CATEGORY
+
+    category = order_data["category"]
+    service = order_data["service"]
+    details = order_data["details"]
+    
+    # Telefon raqamini tafsilotlarga qo'shish
+    full_details = f"{details}\n\n📞 Tel: {phone}"
+
+    order_id = save_to_excel(user.id, username, category, service, full_details)
+    save_to_db(user.id, username, category, service, full_details)
+    save_user(user.id, user.username, user.first_name)
+
+    admin_msg = (
+        f"🌟 *YANGI TASDIQLANGAN BUYURTMA #{order_id}*\n\n"
+        f"👤 *Mijoz:* {user.mention_markdown(name=username)}\n"
+        f"🆔 *ID:* `{user.id}`\n"
+        f"📞 *Tel:* {phone}\n"
+        f"📝 *Tafsilot:* \n{details}\n"
+        f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    )
+    
+    inline_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
+        [InlineKeyboardButton("✅ Bajarildi", callback_data=f"ord_done_{user.id}_{order_id}")]
+    ])
+    
+    try:
+        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown", reply_markup=inline_kb)
+    except Exception as e:
+        logger.error(f"Admin xabar yuborishda xato: {e}")
+
+    await update.message.reply_text(
+        f"✅ *Buyurtmangiz qabul qilindi!*\n\n{details}\n\nTez orada bog'lanamiz. 🙏",
+        parse_mode="Markdown",
+        reply_markup=get_main_keyboard(user.id)
+    )
+    
+    # Ma'lumotlarni tozalash
+    context.user_data.pop("pending_order", None)
+    return SELECT_CATEGORY
 
 def main():
     init_db()
@@ -826,12 +857,14 @@ def main():
     conv = ConversationHandler(
         entry_points=[
             CommandHandler("start", start),
-            CallbackQueryHandler(order_action_callback, pattern="^ord_")
+            CallbackQueryHandler(order_action_callback, pattern="^ord_"),
+            MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler)
         ],
         states={
             SELECT_CATEGORY: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, category_selected),
-                CallbackQueryHandler(order_action_callback, pattern="^ord_")
+                CallbackQueryHandler(order_action_callback, pattern="^ord_"),
+                MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler)
             ],
             SELECT_SUB: [MessageHandler(filters.TEXT & ~filters.COMMAND, sub_selected)],
             ENTER_DETAILS: [
@@ -847,12 +880,13 @@ def main():
             PRICE_EDIT_SVC: [MessageHandler(filters.TEXT & ~filters.COMMAND, price_edit_svc)],
             PRICE_EDIT_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, price_edit_val)],
             ANSWER_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, answer_handler)],
+            WAITING_PHONE: [MessageHandler(filters.CONTACT, contact_handler)],
         },
         fallbacks=[CommandHandler("cancel", lambda u, c: start(u, c))],
         allow_reentry=True,
     )
     app.add_handler(conv)
-    # Mini App ma'lumotlari uchun handler
+    # Mini App ma'lumotlari uchun handler (convdan tashqarida ham qolsin har ehtimolga qarshi)
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     app.run_polling()
 

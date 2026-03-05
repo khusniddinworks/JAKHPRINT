@@ -6,15 +6,15 @@
             "services": [
                 {
                     "name": "📄 Oddiy sayt",
-                    "price": 1300000,
+                    "price": 1170000,
                     "desc": "Landing page, 1-3 sahifali vizitka saytlar. Tez va arzon.",
-                    "tag": "💡 Eng mashhur"
+                    "tag": "💰 10% CHEGIRMA"
                 },
                 {
                     "name": "🖥️ Dashboardli sayt",
-                    "price": 3250000,
+                    "price": 2925000,
                     "desc": "Boshqaruv paneli, ma'lumotlar bazasi, foydalanuvchilar tizimi.",
-                    "tag": ""
+                    "tag": "💰 10% CHEGIRMA"
                 }
             ]
         },
@@ -24,27 +24,27 @@
             "services": [
                 {
                     "name": "💬 Oddiy chatbot",
-                    "price": 400000,
+                    "price": 360000,
                     "desc": "Savol-javob, ma'lumot tarqatish va avtomatik javoblar.",
-                    "tag": ""
+                    "tag": "💰 10% CHEGIRMA"
                 },
                 {
                     "name": "🤖 AI chatbot",
-                    "price": 500000,
+                    "price": 450000,
                     "desc": "Sun'iy intellekt bilan ishlash, aqlli javoblar.",
-                    "tag": ""
+                    "tag": "💰 10% CHEGIRMA"
                 },
                 {
                     "name": "📦 Zakaz bot",
-                    "price": 800000,
+                    "price": 720000,
                     "desc": "Buyurtma qabul qilish, adminga bildirishnoma va Excel hisobot.",
-                    "tag": "🔥 Eng ko'p sotilgan"
+                    "tag": "🔥 MASHHUR -10%"
                 },
                 {
                     "name": "🍔 Murakkab bot / WebApp",
-                    "price": 1500000,
+                    "price": 1350000,
                     "desc": "WebApp, to'lov tizimi, murakkab funksiyalar va integratsiya.",
-                    "tag": ""
+                    "tag": "💰 10% CHEGIRMA"
                 }
             ]
         },
@@ -54,27 +54,27 @@
             "services": [
                 {
                     "name": "💳 Vizitka (100 ta)",
-                    "price": 50000,
+                    "price": 45000,
                     "desc": "100 dona, sifatli qog'oz, zamonaviy dizayn.",
-                    "tag": ""
+                    "tag": "💰 -10%"
                 },
                 {
                     "name": "📩 Taklifnoma",
-                    "price": 5000,
+                    "price": 750,
                     "desc": "1 dona, to'y va bayramlar uchun. Maxsus dizayn.",
-                    "tag": ""
+                    "tag": "💰 -10%"
                 },
                 {
                     "name": "📰 Flayer / Buklet (100 ta)",
-                    "price": 100000,
+                    "price": 70000,
                     "desc": "100 dona, A5 format, rangli, reklama uchun.",
-                    "tag": ""
+                    "tag": "💰 -10%"
                 },
                 {
                     "name": "📋 A4 Print",
-                    "price": 1000,
+                    "price": 700,
                     "desc": "1 varaq, matn va rasm chop etish.",
-                    "tag": ""
+                    "tag": "💰 -10%"
                 }
             ]
         }
