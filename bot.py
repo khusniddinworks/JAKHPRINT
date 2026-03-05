@@ -407,4 +407,17 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    try:
+        # Python 3.10+ da event loop bilan bog'liq muammolarni oldini olish
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+        main()
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Bot to'xtatildi.")
+    except Exception as e:
+        logger.error(f"Kutilmagan xato: {e}")
