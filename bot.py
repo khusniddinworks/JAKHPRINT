@@ -1,9 +1,10 @@
 import logging
 import sqlite3
 import os
+import json
 from datetime import datetime
 from openpyxl import Workbook, load_workbook
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, WebAppInfo
 from telegram.ext import (
     Application, CommandHandler,
     ConversationHandler, MessageHandler, filters, ContextTypes
@@ -99,9 +100,24 @@ CONFIRM_KB = make_keyboard(CONFIRM_BUTTONS, columns=1)
 
 def get_main_keyboard(user_id):
     buttons = MAIN_BUTTONS.copy()
+    # Mini App URL (Render o'zi taqdim etadi yoki placeholder)
+    web_app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://your-app-name.onrender.com")
+    
+    keyboard = []
+    # Mini App tugmasi alohida qatorda
+    keyboard.append([KeyboardButton("🚀 Mini Appni ochish", web_app=WebAppInfo(url=web_app_url))])
+    
+    # Qolgan tugmalarni 2 ta ustun qilib joylash
+    for i in range(0, len(MAIN_BUTTONS), 2):
+        row = [KeyboardButton(b) for b in MAIN_BUTTONS[i:i+2]]
+        keyboard.append(row)
+        
     if user_id == ADMIN_ID:
-        buttons.extend(ADMIN_ONLY_BUTTONS)
-    return make_keyboard(buttons, columns=2)
+        for i in range(0, len(ADMIN_ONLY_BUTTONS), 2):
+            row = [KeyboardButton(b) for b in ADMIN_ONLY_BUTTONS[i:i+2]]
+            keyboard.append(row)
+            
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 
 # ── Excel ─────────────────────────────────────────────
@@ -185,11 +201,17 @@ def save_to_db(user_id, username, category, service, details):
 
 # ── Handlers ──────────────────────────────────────────
 def run_health_check():
-    """Render uchun kichik HTTP server. Bu Render botni 'dead' deb o'ylashini oldini oladi."""
+    """Render uchun kichik HTTP server va Mini App fayllarini server qilish."""
     port = int(os.environ.get("PORT", 8000))
-    handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", port), handler) as httpd:
-        logger.info(f"✅ Health Check server {port}-portda ishga tushdi.")
+    # 'webapp' papkasini server qilish
+    web_dir = os.path.join(os.path.dirname(__file__), "webapp")
+    
+    class MyHandler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=web_dir, **kwargs)
+
+    with socketserver.TCPServer(("", port), MyHandler) as httpd:
+        logger.info(f"✅ WebApp server {port}-portda ishga tushdi ({web_dir}).")
         httpd.serve_forever()
 
 async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
@@ -578,6 +600,36 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text("❌ Bekor qilindi.", reply_markup=get_main_keyboard(user.id))
         return SELECT_CATEGORY
 
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mini Appdan kelgan ma'lumotlarni qayta ishlash."""
+    data = json.loads(update.effective_message.web_app_data.data)
+    services = data.get("services", [])
+    total = data.get("total", 0)
+    user = update.effective_user
+    username = user.username or user.first_name
+    
+    details = "🛒 Mini App orqali tanlangan xizmatlar:\n"
+    for s in services:
+        details += f"• {s}\n"
+    details += f"\n💰 Jami: {total:,.0f} so'm".replace(",", " ")
+
+    order_id = save_to_excel(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
+    save_to_db(user.id, username, "MINI APP", "Ko'p tarmoqli", details)
+
+    admin_msg = (
+        f"🌟 *MINI APP ORQALI YANGI BUYURTMA #{order_id}*\n\n"
+        f"👤 *Mijoz:* {user.mention_markdown(name=username)}\n"
+        f"📝 *Tafsilot:* \n{details}\n"
+        f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    )
+    
+    await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
+    await update.message.reply_text(
+        f"✅ *Buyurtmangiz qabul qilindi!*\n\n{details}\n\nTez orada bog'lanamiz. 🙏",
+        parse_mode="Markdown",
+        reply_markup=get_main_keyboard(user.id)
+    )
+
 def main():
     init_db()
     init_excel()
@@ -611,6 +663,8 @@ def main():
         allow_reentry=True,
     )
     app.add_handler(conv)
+    # Mini App ma'lumotlari uchun handler
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     app.run_polling()
 
 if __name__ == "__main__":
