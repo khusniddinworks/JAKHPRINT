@@ -265,7 +265,7 @@ async def sub_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         context.user_data["service"] = text
         
         msg = f"*{text}* tanlandi ✅\n\n✍️ Buyurtmangiz haqida batafsil yozing:"
-        if "Maxsus buyurtma" in text:
+        if "Maxsus buyurtma" in text or "A4 formatdagi boshqa print" in text:
             msg += "\n\n💡 _Ushbu yo'nalishda buyurtmangizni *Ovozli xabar (Audio)* orqali ham yuborishingiz mumkin!_"
             
         await update.message.reply_text(
@@ -279,7 +279,9 @@ async def sub_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ovozli xabarlarni qabul qilish va adminga yuborish."""
     service = context.user_data.get("service", "")
-    if "Maxsus buyurtma" not in service:
+    valid_voice_services = ["Maxsus buyurtma", "A4 formatdagi boshqa print"]
+    
+    if not any(s in service for s in valid_voice_services):
         await update.message.reply_text("❌ Bu bo'limda faqat matnli xabar qabul qilinadi.")
         return ENTER_DETAILS
 
