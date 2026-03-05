@@ -20,34 +20,54 @@ logger = logging.getLogger(__name__)
 EXCEL_FILE = os.path.join(os.path.dirname(__file__), "works.xlsx")
 
 # ── States ───────────────────────────────────────────
-SELECT_CATEGORY, SELECT_SUB, ENTER_DETAILS, CONFIRM_STATE, BROADCAST_STATE = range(5)
+(SELECT_CATEGORY, SELECT_SUB, ENTER_DETAILS, CONFIRM_STATE, 
+ BROADCAST_STATE, CALC_START, CALC_SERVICES, CALC_PLAN, CALC_ADDONS) = range(9)
+
+# ── Narxlar va Ma'lumotlar ───────────────────────────
+USD_TO_UZS = 13000
+
+PRICES = {
+    "🌐 Veb-sayt": {
+        "📄 Oddiy sayt (100$)": 100 * USD_TO_UZS,
+        "🖥️ Dashboardli sayt (250$)": 250 * USD_TO_UZS,
+    },
+    "🤖 Telegram Bot": {
+        "💬 Oddiy chatbot (400.000 so'm)": 400000,
+        "🤖 Ai chat bot (500.000 so'm)": 500000,
+        "📦 Zakaz bot (800.000 so'm)": 800000,
+        "🍔 Murakkab bot / WebApp (1.500.000 so'm)": 1500000,
+    },
+}
+
+ADDONS_PRICES = {
+    "💳 Vizitka (100 ta)": 50000,
+    "📰 Flayer (100 ta)": 100000
+}
 
 # ── Menyu ma'lumotlari ───────────────────────────────
-MAIN_BUTTONS = ["🌐 Veb-sayt", "🤖 Telegram Bot", "🖨️ Print xizmati"]
+MAIN_BUTTONS = ["🌐 Veb-sayt", "🤖 Telegram Bot", "🖨️ Print xizmati", "🧮 Hisob-kitob"]
 ADMIN_ONLY_BUTTONS = ["📊 Statistika", "📂 Excelni yuklab olish", "📢 Xabar yuborish"]
 
 SUB_BUTTONS = {
     "🌐 Veb-sayt": [
-        "📄 Landing page (1 sahifa)",
-        "🗂️ Portfolio sayt",
-        "🛒 Internet do'kon",
-        "🏢 Korporativ sayt",
-        "⚙️ Boshqa / Maxsus buyurtma",
+        "📄 Oddiy sayt (100$)",
+        "🖥️ Dashboardli sayt (250$)",
+        "⚙️ Maxsus buyurtma",
         "⬅️ Orqaga",
     ],
     "🤖 Telegram Bot": [
-        "💬 Oddiy chatbot",
-        "📦 Zakaz bot (buyurtma qabul qilish)",
-        "🍔 Bot + Veb (Fast-food / Do'kon)",
-        "⚙️ Boshqa / Maxsus buyurtma",
+        "💬 Oddiy chatbot (400.000 so'm)",
+        "🤖 Ai chat bot (500.000 so'm)",
+        "📦 Zakaz bot (800.000 so'm)",
+        "🍔 Murakkab bot / WebApp (1.500.000 so'm)",
+        "⚙️ Maxsus buyurtma",
         "⬅️ Orqaga",
     ],
     "🖨️ Print xizmati": [
-        "💳 Vizitka",
-        "📩 Taklifnoma",
-        "📰 Flayer / Buklet",
-        "🖼️ Banner / Poster",
-        "📋 A4 formatdagi boshqa print",
+        "💳 Vizitka (100 ta / 50.000 so'm)",
+        "📩 Taklifnoma (3.000 - 50.000 so'm)",
+        "📰 Flayer / Buklet (100.000 so'm)",
+        "📋 A4 formatdagi print (800 - 2.000 so'm)",
         "⬅️ Orqaga",
     ],
 }
@@ -223,6 +243,9 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text("📢 Barchaga yubormoqchi bo'lgan xabaringizni yozing (yoki /cancel):", reply_markup=ReplyKeyboardRemove())
             return BROADCAST_STATE
 
+    if text == "🧮 Hisob-kitob":
+        return await calculator_start(update, context)
+
     if text not in MAIN_BUTTONS:
         return SELECT_CATEGORY
 
@@ -232,6 +255,149 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         reply_markup=make_keyboard(SUB_BUTTONS[text], columns=1),
     )
     return SELECT_SUB
+
+# ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
+async def calculator_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["calc_items"] = []
+    
+    kb = [["🌐 Veb-sayt xizmatlari"], ["🤖 Bot xizmatlari"], ["✅ Hisoblash"], ["⬅️ Chiqish"]]
+    await update.message.reply_text(
+        "🧮 *Kalkulyator bo'limiga xush kelibsiz!*\n\n"
+        "Quyidagi bo'limlardan xizmatlarni tanlang va savatchaga qo'shing:",
+        parse_mode="Markdown",
+        reply_markup=make_keyboard(kb, columns=1)
+    )
+    return CALC_SERVICES
+
+async def calculator_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    
+    if text == "⬅️ Chiqish":
+        return await start(update, context)
+        
+    if text == "🌐 Veb-sayt xizmatlari":
+        kb = list(PRICES["🌐 Veb-sayt"].keys()) + ["⬅️ Orqaga"]
+        await update.message.reply_text("Veb-sayt turi:", reply_markup=make_keyboard(kb, columns=1))
+        return CALC_SERVICES
+        
+    if text == "🤖 Bot xizmatlari":
+        kb = list(PRICES["🤖 Telegram Bot"].keys()) + ["⬅️ Orqaga"]
+        await update.message.reply_text("Bot turi:", reply_markup=make_keyboard(kb, columns=1))
+        return CALC_SERVICES
+
+    if text == "⬅️ Orqaga":
+        return await calculator_start(update, context)
+
+    # Savatga qo'shish
+    all_prices = {**PRICES["🌐 Veb-sayt"], **PRICES["🤖 Telegram Bot"]}
+    if text in all_prices:
+        context.user_data.setdefault("calc_items", []).append(text)
+        await update.message.reply_text(f"✅ *{text}* savatga qo'shildi.", parse_mode="Markdown")
+        return CALC_SERVICES
+
+    if text == "✅ Hisoblash":
+        items = context.user_data.get("calc_items", [])
+        if not items:
+            await update.message.reply_text("⚠️ Savatchangiz bo'sh!")
+            return CALC_SERVICES
+        
+        total = sum(all_prices[i] for i in items)
+        context.user_data["calc_total"] = total
+        
+        msg = "🛒 *Siz tanlagan xizmatlar:*\n\n"
+        for i in items:
+            msg += f"• {i}\n"
+        msg += f"\n💰 *Jami:* {total:,.0f} so'm".replace(",", " ")
+        msg += "\n\n🎁 Siz uchun ajoyib taklifim bor! Nima deysiz?"
+        
+        await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=make_keyboard(["Qani?", "❌ Bekor qilish"], columns=1))
+        return CALC_PLAN
+
+async def plan_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    if text == "❌ Bekor qilish":
+        return await start(update, context)
+    
+    if text == "Qani?":
+        kb = [["⚪️ Ekonom Tarif (-10%)"], ["🟡 Premium Tarif (-10%)"]]
+        await update.message.reply_text(
+            "Tanlang:\n\n"
+            "⚪️ *Ekonom:* Sifatli va tezkor xizmat.\n"
+            "🟡 *Premium:* Dizayn + Admin panel + Alohida e'tibor.",
+            parse_mode="Markdown",
+            reply_markup=make_keyboard(kb, columns=1)
+        )
+        return CALC_PLAN
+
+    if "Tarif" in text:
+        context.user_data["calc_plan"] = text
+        await update.message.reply_text(
+            "Bunga qo'shimcha mahsulotlar ham qo'shamizmi?\n(Ixtiyoriy, tanlamasangiz 'O'tkazib yuborish'ni bosing)",
+            reply_markup=make_keyboard(["💳 Vizitka (100 ta)", "📰 Flayer (100 ta)", "➡️ O'tkazib yuborish"], columns=1)
+        )
+        return CALC_ADDONS
+    return CALC_PLAN
+
+async def addons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    context.user_data.setdefault("calc_addons", {})
+    
+    if text == "➡️ O'tkazib yuborish":
+        return await final_calc_result(update, context)
+        
+    if text in ADDONS_PRICES:
+        item = text
+        current = context.user_data["calc_addons"].get(item, 0)
+        context.user_data["calc_addons"][item] = current + 100
+        await update.message.reply_text(
+            f"✅ {item} +100 ta qo'shildi (Jami: {context.user_data['calc_addons'][item]} ta).\n\n"
+            "Yana qo'shasizmi yoki davom etamizmi?",
+            reply_markup=make_keyboard(["💳 Vizitka (100 ta)", "📰 Flayer (100 ta)", "✅ Davom etish"], columns=1)
+        )
+        return CALC_ADDONS
+    
+    if text == "✅ Davom etish":
+        return await final_calc_result(update, context)
+    return CALC_ADDONS
+
+async def final_calc_result(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    total = context.user_data.get("calc_total", 0)
+    plan = context.user_data.get("calc_plan", "")
+    items = context.user_data.get("calc_items", [])
+    addons = context.user_data.get("calc_addons", {})
+
+    # 10% chegirma
+    discounted = total * 0.9
+    
+    # Addonlar narxi
+    addons_total = 0
+    addons_text = ""
+    for k, v in addons.items():
+        price = (v // 100) * ADDONS_PRICES[k]
+        addons_total += price
+        addons_text += f"• {k}: {v} ta ({price:,.0f} so'm)\n".replace(",", " ")
+
+    final_total = discounted + addons_total
+    
+    summary = (
+        f"🏁 *YAKUNIY HISOBOBT*\n\n"
+        f"📦 *Xizmatlar:* {len(items)} ta\n"
+        f"📊 *Tarif:* {plan}\n"
+        f"💰 *Asosiy narx:* {total:,.0f} so'm\n"
+        f"🔥 *Chegirma (10%):* -{(total*0.1):,.0f} so'm\n"
+    ).replace(",", " ")
+    
+    if addons_text:
+        summary += f"\n➕ *Qo'shimchalar:*\n{addons_text}"
+        
+    summary += f"\n🏆 *TO'LANADIGAN JAMI:* {final_total:,.0f} so'm\n\n".replace(",", " ")
+    summary += "Ushbu buyurtmani tasdiqlaysizmi?"
+    
+    context.user_data["final_summary"] = summary
+    context.user_data["final_price"] = final_total
+    
+    await update.message.reply_text(summary, parse_mode="Markdown", reply_markup=CONFIRM_KB)
+    return CONFIRM_STATE
 
 async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Admin yozgan xabarni barcha foydalanuvchilarga yuboradi."""
@@ -271,7 +437,7 @@ async def sub_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         await update.message.reply_text(
             msg,
             parse_mode="Markdown",
-            reply_markup=ReplyKeyboardRemove(),
+            reply_markup=get_main_keyboard(update.effective_user.id),
         )
         return ENTER_DETAILS
     return SELECT_SUB
@@ -282,8 +448,11 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     valid_voice_services = ["Maxsus buyurtma", "A4 formatdagi boshqa print"]
     
     if not any(s in service for s in valid_voice_services):
-        await update.message.reply_text("❌ Bu bo'limda faqat matnli xabar qabul qilinadi.")
-        return ENTER_DETAILS
+        await update.message.reply_text(
+            "❌ Bu bo'limda faqat matnli xabar qabul qilinadi.",
+            reply_markup=get_main_keyboard(update.effective_user.id)
+        )
+        return SELECT_CATEGORY
 
     user = update.effective_user
     username = user.username or user.first_name
@@ -338,9 +507,16 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user = update.effective_user
     
     if text == "✅ Tasdiqlash":
-        category = context.user_data.get("category")
-        service  = context.user_data.get("service")
-        details  = context.user_data.get("details")
+        summary = context.user_data.get("final_summary")
+        if summary:
+            # Kalkulyator buyurtmasi
+            category = "HISOB-KITOB"
+            service = context.user_data.get("calc_plan", "Kalkulyator")
+            details = summary.replace("*", "").replace("_", "")
+        else:
+            category = context.user_data.get("category")
+            service  = context.user_data.get("service")
+            details  = context.user_data.get("details")
         
         if not category or not service:
             return SELECT_CATEGORY
@@ -357,7 +533,7 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"🆔 *ID:* `{user.id}`\n"
             f"🗂 *Kategoriya:* {category}\n"
             f"📌 *Xizmat:* {service}\n"
-            f"📝 *Tafsilot:* {details}\n"
+            f"📝 *Tafsilot:* \n{details}\n"
             f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         )
         try:
@@ -399,6 +575,9 @@ def main():
             ],
             CONFIRM_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_handler)],
             BROADCAST_STATE: [MessageHandler(filters.ALL & ~filters.COMMAND, broadcast_handler)],
+            CALC_SERVICES: [MessageHandler(filters.TEXT & ~filters.COMMAND, calculator_step)],
+            CALC_PLAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, plan_handler)],
+            CALC_ADDONS: [MessageHandler(filters.TEXT & ~filters.COMMAND, addons_handler)],
         },
         fallbacks=[CommandHandler("cancel", lambda u, c: start(u, c))],
         allow_reentry=True,
