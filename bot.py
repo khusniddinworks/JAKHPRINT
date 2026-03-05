@@ -244,6 +244,7 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return BROADCAST_STATE
 
     if text == "🧮 Hisob-kitob":
+        context.user_data["calc_items"] = []
         return await calculator_start(update, context)
 
     if text not in MAIN_BUTTONS:
@@ -258,8 +259,6 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 # ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
 async def calculator_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["calc_items"] = []
-    
     kb = ["🌐 Veb-sayt xizmatlari", "🤖 Bot xizmatlari", "✅ Hisoblash", "⬅️ Chiqish"]
     await update.message.reply_text(
         "🧮 *Kalkulyator bo'limiga xush kelibsiz!*\n\n"
