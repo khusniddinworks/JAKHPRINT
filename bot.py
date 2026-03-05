@@ -100,8 +100,8 @@ CONFIRM_KB = make_keyboard(CONFIRM_BUTTONS, columns=1)
 
 def get_main_keyboard(user_id):
     buttons = MAIN_BUTTONS.copy()
-    # Mini App URL (Render o'zi taqdim etadi yoki placeholder)
-    web_app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://your-app-name.onrender.com")
+    # GitHub Pages manzilingiz (Root)
+    web_app_url = "https://khusniddinworks.github.io/JAKHPRINT/"
     
     keyboard = []
     # Mini App tugmasi alohida qatorda
@@ -201,17 +201,16 @@ def save_to_db(user_id, username, category, service, details):
 
 # ── Handlers ──────────────────────────────────────────
 def run_health_check():
-    """Render uchun kichik HTTP server va Mini App fayllarini server qilish."""
+    """Render uchun kichik HTTP server."""
     port = int(os.environ.get("PORT", 8000))
-    # 'webapp' papkasini server qilish
-    web_dir = os.path.join(os.path.dirname(__file__), "webapp")
+    web_dir = os.path.dirname(__file__)
     
     class MyHandler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=web_dir, **kwargs)
 
     with socketserver.TCPServer(("", port), MyHandler) as httpd:
-        logger.info(f"✅ WebApp server {port}-portda ishga tushdi ({web_dir}).")
+        logger.info(f"✅ Health server {port}-portda ishga tushdi.")
         httpd.serve_forever()
 
 async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
