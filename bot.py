@@ -95,6 +95,13 @@ def sync_prices():
 # Dastlabki yuklash
 sync_prices()
 
+ADMIN_ONLY_BUTTONS = ["📊 Statistika", "📂 Excelni yuklab olish", "📢 Xabar yuborish", "💰 Narxlarni o'zgartirish"]
+
+def get_uzb_time():
+    """O'zbekiston vaqtini qaytaradi (UTC+5)."""
+    from datetime import timedelta
+    return datetime.now() + timedelta(hours=5)
+
 CONFIRM_BUTTONS = ["✅ Tasdiqlash", "✏️ Tahrirlash", "❌ Bekor qilish"]
 
 
@@ -166,7 +173,7 @@ def save_to_excel(user_id, username, category, service, details):
         val = ws.cell(row=last_row, column=1).value
         try: next_id = int(val) + 1
         except: next_id = last_row
-    sana = datetime.now().strftime("%Y-%m-%d %H:%M")
+    sana = get_uzb_time().strftime("%Y-%m-%d %H:%M")
     ws.append([next_id, sana, user_id, username, category, service, details])
     wb.save(EXCEL_FILE)
     return next_id
@@ -648,7 +655,7 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user = update.effective_user
     username = user.username or user.first_name
     category = context.user_data.get("category", "")
-    sana = datetime.now().strftime('%Y-%m-%d %H:%M')
+    sana = get_uzb_time().strftime('%Y-%m-%d %H:%M')
 
     # Excel va DB ga saqlash
     order_id = save_to_excel(user.id, username, category, service, "Ovozli xabar yuborildi")
@@ -730,7 +737,7 @@ async def confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"🗂 *Kategoriya:* {category}\n"
             f"📌 *Xizmat:* {service}\n"
             f"📝 *Tafsilot:* \n{details}\n"
-            f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            f"📅 *Sana:* {get_uzb_time().strftime('%Y-%m-%d %H:%M')}"
         )
         inline_kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 Javob yozish", callback_data=f"ord_reply_{user.id}_{order_id}")],
@@ -824,7 +831,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"🆔 *ID:* `{user.id}`\n"
         f"📞 *Tel:* {phone}\n"
         f"📝 *Tafsilot:* \n{details}\n"
-        f"📅 *Sana:* {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        f"📅 *Sana:* {get_uzb_time().strftime('%Y-%m-%d %H:%M')}"
     )
     
     inline_kb = InlineKeyboardMarkup([
