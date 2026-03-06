@@ -27,6 +27,7 @@ function formatPrice(num) {
 async function loadPrices() {
     try {
         const res = await fetch('prices.json?t=' + Date.now());
+        if (!res.ok) throw new Error(`Server xatosi: ${res.status}`);
         const data = await res.json();
         renderServices(data.categories);
     } catch (e) {
