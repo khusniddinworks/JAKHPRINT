@@ -260,11 +260,12 @@ async def set_bot_info(context: ContextTypes.DEFAULT_TYPE):
         # "What can this bot do?" qismi
         await context.bot.set_my_description(
             "🤖 Ushbu bot orqali Veb-sayt yaratish, Telegram botlar yasash va barcha turdagi Print xizmatlariga buyurtma berishingiz mumkin.\n\n"
-            "👨‍💻 Admin: @khusniddinkhamidov"
+            "👨‍💻 Admin: @khusniddinkhamidov\n"
+            "📢 Reklama bo'yicha Admin: @TSH_Jamshidbek"
         )
         # Qisqa tavsif
         await context.bot.set_my_short_description(
-            "Veb-sayt, Bot va Print xizmatlari uchun rasmiy zakaz boti. Admin: @khusniddinkhamidov"
+            "Veb-sayt, Bot va Print xizmatlari uchun rasmiy zakaz boti. Admin: @khusniddinkhamidov. Reklama: @TSH_Jamshidbek"
         )
         logger.info("✅ Bot tavsiflari o'rnatildi.")
     except Exception as e:
@@ -422,9 +423,9 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if text == "📞 Bog'lanish":
         await update.message.reply_text(
             "📞 *Bog'lanish:*\n\n"
-            "👨\u200d💻 Admin: @khusniddinkhamidov\n"
-            "� Reklama bo'yicha: @TSH\\_Jamshidbek\n"
-            "�📱 Telefon: Telegram orqali yozing\n\n"
+            "👨‍💻 Admin: @khusniddinkhamidov\n"
+            "📢 Reklama bo'yicha Admin: @TSH_Jamshidbek\n"
+            "📱 Telefon: Telegram orqali yozing\n\n"
             "Ish vaqti: 09:00 — 22:00",
             parse_mode="Markdown"
         )
@@ -436,11 +437,11 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             "🌐 Veb-sayt yaratish\n"
             "🤖 Telegram bot ishlab chiqish\n"
             "🖨️ Print xizmatlari (vizitka, flayer, taklifnomalar)\n\n"
-            "Biz bilan ishlaganingiz uchun rahmat! �",
+            "👨‍💻 Asosiy Admin: @khusniddinkhamidov\n"
+            "📢 Reklama Admini: @TSH_Jamshidbek\n\n"
+            "Biz bilan ishlaganingiz uchun rahmat! 🙏",
             parse_mode="Markdown"
         )
-        return SELECT_CATEGORY
-
     return SELECT_CATEGORY
 
 # ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
