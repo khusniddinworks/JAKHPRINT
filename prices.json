@@ -7,6 +7,7 @@
                 {
                     "name": "📄 Oddiy sayt",
                     "price": 1170000,
+                    "oldPrice": 1300000,
                     "desc": "Landing page, 1-3 sahifali vizitka saytlar. Tez va arzon.",
                     "tag": "💰 10% CHEGIRMA",
                     "unit": "donada"
@@ -14,6 +15,7 @@
                 {
                     "name": "🖥️ Dashboardli sayt",
                     "price": 2925000,
+                    "oldPrice": 3250000,
                     "desc": "Boshqaruv paneli, ma'lumotlar bazasi, foydalanuvchilar tizimi.",
                     "tag": "💰 10% CHEGIRMA",
                     "unit": "donada"
@@ -27,6 +29,7 @@
                 {
                     "name": "💬 Oddiy chatbot",
                     "price": 360000,
+                    "oldPrice": 400000,
                     "desc": "Savol-javob, ma'lumot tarqatish va avtomatik javoblar.",
                     "tag": "💰 10% CHEGIRMA",
                     "unit": "donada"
@@ -34,6 +37,7 @@
                 {
                     "name": "🤖 AI chatbot",
                     "price": 450000,
+                    "oldPrice": 500000,
                     "desc": "Sun'iy intellekt bilan ishlash, aqlli javoblar.",
                     "tag": "💰 10% CHEGIRMA",
                     "unit": "donada"
@@ -41,6 +45,7 @@
                 {
                     "name": "📦 Zakaz bot",
                     "price": 720000,
+                    "oldPrice": 800000,
                     "desc": "Buyurtma qabul qilish, adminga bildirishnoma va Excel hisobot.",
                     "tag": "🔥 MASHHUR -10%",
                     "unit": "donada"
@@ -48,6 +53,7 @@
                 {
                     "name": "🍔 Murakkab bot / WebApp",
                     "price": 1350000,
+                    "oldPrice": 1500000,
                     "desc": "WebApp, to'lov tizimi, murakkab funksiyalar va integratsiya.",
                     "tag": "💰 10% CHEGIRMA",
                     "unit": "donada"
@@ -61,6 +67,7 @@
                 {
                     "name": "💳 Vizitka",
                     "price": 450,
+                    "oldPrice": 500,
                     "desc": "Har bir dona uchun narx. Sifatli qog'oz, zamonaviy dizayn.",
                     "tag": "💰 -10%",
                     "unit": "dona"
@@ -68,6 +75,7 @@
                 {
                     "name": "📩 Taklifnoma",
                     "price": 750,
+                    "oldPrice": 850,
                     "desc": "1 dona uchun narx, to'y va bayramlar uchun. Maxsus dizayn.",
                     "tag": "💰 -10%",
                     "unit": "dona"
@@ -75,13 +83,15 @@
                 {
                     "name": "📰 Flayer / Buklet",
                     "price": 700,
-                    "desc": "Har bir dona uchun narx. A4 format, rangli, reklama uchun.",
+                    "oldPrice": 800,
+                    "desc": "Har bir dona uchun narx. A5 format, rangli, reklama uchun.",
                     "tag": "💰 -10%",
                     "unit": "dona"
                 },
                 {
                     "name": "📋 A4 Print",
                     "price": 700,
+                    "oldPrice": 800,
                     "desc": "1 varaq uchun narx, matn va rasm chop etish.",
                     "tag": "💰 -10%",
                     "unit": "bet"

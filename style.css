@@ -240,6 +240,17 @@ header {
     font-weight: 700;
     font-size: 0.9rem;
     white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.old-price {
+    color: #64748b;
+    text-decoration: line-through;
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-bottom: 2px;
 }
 
 .card p {

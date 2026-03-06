@@ -8,7 +8,7 @@ const container = document.getElementById('servicesContainer');
 tg.expand();
 tg.ready();
 
-let cart = {}; // { "Name": { quantity, price, categoryId } }
+let cart = {}; // { "Name": { quantity, price, oldPrice, categoryId } }
 
 // Scroll hint
 window.addEventListener('scroll', () => {
@@ -47,23 +47,27 @@ function renderServices(categories) {
             const unit = svc.unit || 'dona';
             const cardId = svc.name.replace(/\s+/g, '-');
             const isPrint = cat.id === 'print';
+            const oldPrice = svc.oldPrice || 0;
 
             html += `
-                <div class="card" id="card-${cardId}" onclick="handleCardClick(event, this, '${svc.name}', ${svc.price}, '${cat.id}')" style="animation-delay: ${delay}s">
+                <div class="card" id="card-${cardId}" onclick="handleCardClick(event, this, '${svc.name}', ${svc.price}, ${oldPrice}, '${cat.id}')" style="animation-delay: ${delay}s">
                     <div class="check-badge">✅</div>
                     <h3>
                         ${svc.name} 
-                        <span class="price" id="price-display-${cardId}">${formatPrice(svc.price)} so'm</span>
+                        <span class="price" id="price-display-${cardId}">
+                            ${oldPrice > 0 ? `<span class="old-price">${formatPrice(oldPrice)} so'm</span>` : ''}
+                            <span class="current-price">${formatPrice(svc.price)} so'm</span>
+                        </span>
                     </h3>
                     <p>${svc.desc}</p>
                     ${tag}
                     ${isPrint ? `
                     <div class="quantity-controls" onclick="event.stopPropagation()">
-                        <button class="qty-btn" onclick="updateQty('${svc.name}', -1, ${svc.price}, '${cardId}')">−</button>
+                        <button class="qty-btn" onclick="updateQty('${svc.name}', -1, ${svc.price}, ${oldPrice}, '${cardId}')">−</button>
                         <input type="number" class="qty-input" id="qty-${cardId}" value="0" 
-                               onchange="setQty('${svc.name}', this.value, ${svc.price}, '${cardId}')"
+                               onchange="setQty('${svc.name}', this.value, ${svc.price}, ${oldPrice}, '${cardId}')"
                                onfocus="this.select()">
-                        <button class="qty-btn" onclick="updateQty('${svc.name}', 1, ${svc.price}, '${cardId}')">+</button>
+                        <button class="qty-btn" onclick="updateQty('${svc.name}', 1, ${svc.price}, ${oldPrice}, '${cardId}')">+</button>
                     </div>` : ''}
                 </div>`;
             delay += 0.05;
@@ -76,7 +80,7 @@ function renderServices(categories) {
     container.innerHTML = html;
 }
 
-function handleCardClick(event, el, name, price, categoryId) {
+function handleCardClick(event, el, name, price, oldPrice, categoryId) {
     if (event.target.closest('.quantity-controls')) return;
 
     const cardId = name.replace(/\s+/g, '-');
@@ -86,18 +90,16 @@ function handleCardClick(event, el, name, price, categoryId) {
         el.classList.remove('selected');
         if (categoryId === 'print') {
             document.getElementById(`qty-${cardId}`).value = 0;
-            updatePriceDisplay(cardId, price, 0);
+            updatePriceDisplay(cardId, price, oldPrice, 0);
         }
     } else {
         if (categoryId === 'print') {
-            // Print uchun default 1 ta (yoki vizitka bo'lsa 100 ta)
             let q = (name.includes('Vizitka') || name.includes('Flayer')) ? 100 : 1;
-            cart[name] = { quantity: q, price: price, categoryId: categoryId };
+            cart[name] = { quantity: q, price: price, oldPrice: oldPrice, categoryId: categoryId };
             document.getElementById(`qty-${cardId}`).value = q;
-            updatePriceDisplay(cardId, price, q);
+            updatePriceDisplay(cardId, price, oldPrice, q);
         } else {
-            // Web/Bot uchun doim 1 ta
-            cart[name] = { quantity: 1, price: price, categoryId: categoryId };
+            cart[name] = { quantity: 1, price: price, oldPrice: oldPrice, categoryId: categoryId };
         }
         el.classList.add('selected');
         if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
@@ -105,11 +107,11 @@ function handleCardClick(event, el, name, price, categoryId) {
     updateUI();
 }
 
-function updateQty(name, delta, price, cardId) {
+function updateQty(name, delta, price, oldPrice, cardId) {
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
     if (!cart[name]) {
-        cart[name] = { quantity: 0, price: price, categoryId: 'print' };
+        cart[name] = { quantity: 0, price: price, oldPrice: oldPrice, categoryId: 'print' };
         document.getElementById(`card-${cardId}`).classList.add('selected');
     }
 
@@ -126,11 +128,11 @@ function updateQty(name, delta, price, cardId) {
 
     let currentQty = cart[name] ? cart[name].quantity : 0;
     document.getElementById(`qty-${cardId}`).value = currentQty;
-    updatePriceDisplay(cardId, price, currentQty);
+    updatePriceDisplay(cardId, price, oldPrice, currentQty);
     updateUI();
 }
 
-function setQty(name, val, price, cardId) {
+function setQty(name, val, price, oldPrice, cardId) {
     let q = parseInt(val) || 0;
     const cardEl = document.getElementById(`card-${cardId}`);
 
@@ -139,20 +141,27 @@ function setQty(name, val, price, cardId) {
         delete cart[name];
         if (cardEl) cardEl.classList.remove('selected');
     } else {
-        cart[name] = { quantity: q, price: price, categoryId: 'print' };
+        cart[name] = { quantity: q, price: price, oldPrice: oldPrice, categoryId: 'print' };
         if (cardEl) cardEl.classList.add('selected');
     }
 
     document.getElementById(`qty-${cardId}`).value = q;
-    updatePriceDisplay(cardId, price, q);
+    updatePriceDisplay(cardId, price, oldPrice, q);
     updateUI();
 }
 
-function updatePriceDisplay(cardId, unitPrice, qty) {
+function updatePriceDisplay(cardId, unitPrice, oldUnitPrice, qty) {
     const el = document.getElementById(`price-display-${cardId}`);
     if (el) {
-        let displayPrice = qty > 0 ? unitPrice * qty : unitPrice;
-        el.textContent = `${formatPrice(displayPrice)} so'm`;
+        let currentTotal = qty > 0 ? unitPrice * qty : unitPrice;
+        let oldTotal = qty > 0 ? oldUnitPrice * qty : oldUnitPrice;
+
+        let html = '';
+        if (oldTotal > 0) {
+            html += `<span class="old-price">${formatPrice(oldTotal)} so'm</span>`;
+        }
+        html += `<span class="current-price">${formatPrice(currentTotal)} so'm</span>`;
+        el.innerHTML = html;
     }
 }
 
