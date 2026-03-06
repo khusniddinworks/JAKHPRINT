@@ -120,7 +120,7 @@ CONFIRM_KB = make_keyboard(CONFIRM_BUTTONS, columns=1)
 
 def get_main_keyboard(user_id):
     # Render URL (dinamik narxlar uchun)
-    web_app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://jakhprint.onrender.com/")
+    web_app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://khusniddinworks.github.io/JAKHPRINT/")
     
     keyboard = []
     keyboard.append([KeyboardButton("🚀 Xizmatlar va Narxlar", web_app=WebAppInfo(url=web_app_url))])
