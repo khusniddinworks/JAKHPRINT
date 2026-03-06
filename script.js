@@ -30,7 +30,8 @@ async function loadPrices() {
         const data = await res.json();
         renderServices(data.categories);
     } catch (e) {
-        container.innerHTML = '<p style="text-align:center;color:#ef4444;">❌ Narxlarni yuklashda xatolik</p>';
+        console.error('Narxlarni yuklashda xato:', e);
+        container.innerHTML = `<p style="text-align:center;color:#ef4444;">❌ Narxlarni yuklashda xatolik<br><small>${e.message}</small></p>`;
     }
 }
 
