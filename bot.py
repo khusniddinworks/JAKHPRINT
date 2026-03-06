@@ -287,7 +287,14 @@ async def order_action_callback(update: Update, context: ContextTypes.DEFAULT_TY
         return ANSWER_STATE
     
     elif action == "done":
-        await query.edit_message_caption(caption=query.message.caption + "\n\n✅ *BAJARILDI*", parse_mode="Markdown")
+        try:
+            if query.message.caption:
+                await query.edit_message_caption(caption=query.message.caption + "\n\n✅ *BAJARILDI*", parse_mode="Markdown")
+            else:
+                await query.edit_message_text(text=query.message.text + "\n\n✅ *BAJARILDI*", parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"Done action error: {e}")
+            
         try:
             await context.bot.send_message(chat_id=target_user_id, text=f"✅ Buyurtmangiz #{order_id} muvaffaqiyatli bajarildi!")
         except: pass
