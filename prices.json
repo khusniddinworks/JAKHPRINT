@@ -73,11 +73,27 @@
                     "unit": "dona"
                 },
                 {
-                    "name": "📩 Taklifnoma",
+                    "name": "📩 Taklifnoma (Oddiy)",
                     "price": 750,
                     "oldPrice": 850,
-                    "desc": "1 dona uchun narx, to'y va bayramlar uchun.taklifnoma turiga qarab narx oshadi!!!.",
+                    "desc": "1 dona uchun narx, to'y va bayramlar uchun.",
                     "tag": "💰 -10%",
+                    "unit": "dona"
+                },
+                {
+                    "name": "📩 Taklifnoma (Premium)",
+                    "price": 5000,
+                    "oldPrice": 6000,
+                    "desc": "Narxi 5 000 — 15 000 so'm oralig'ida (turiga qarab).",
+                    "tag": "💎 PREMIUM",
+                    "unit": "dona"
+                },
+                {
+                    "name": "📩 Taklifnoma (Maxsus)",
+                    "price": 20000,
+                    "oldPrice": 25000,
+                    "desc": "Maxsus dizayn, narxi 20 000 — 150 000 so'mgacha. Batafsil @khusniddinkhamidov ga yozing.",
+                    "tag": "🎨 MAXSUS",
                     "unit": "dona"
                 },
                 {
