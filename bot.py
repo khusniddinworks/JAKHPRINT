@@ -218,10 +218,13 @@ def run_health_check():
             super().__init__(*args, directory=web_dir, **kwargs)
         
         def do_GET(self):
+            # Query parametrlarni olib tashlash (masalan, ?t=123)
+            clean_path = self.path.split('?')[0]
+            
             # Faqat ruxsat berilgan fayl turlarini berish
-            if self.path == '/' or self.path == '/index.html':
+            if clean_path == '/' or clean_path == '/index.html':
                 super().do_GET()
-            elif any(self.path.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+            elif any(clean_path.endswith(ext) for ext in ALLOWED_EXTENSIONS):
                 super().do_GET()
             else:
                 self.send_response(403)
