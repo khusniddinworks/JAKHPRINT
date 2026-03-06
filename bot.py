@@ -247,10 +247,16 @@ def run_health_check():
         httpd.serve_forever()
 
 async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
-    """Botni uxlamasligi uchun har 10 daqiqada getMe so'rovini yuboradi."""
+    """Botni uxlamasligi uchun har 10 daqiqada Render URL-ni ping qiladi."""
+    url = os.environ.get("RENDER_EXTERNAL_URL")
     try:
-        await context.bot.get_me()
-        logger.info("❇️ Keep-alive: Bot faol.")
+        if url:
+            import urllib.request
+            urllib.request.urlopen(url, timeout=10)
+            logger.info(f"❇️ Keep-alive: Ping yuborildi: {url}")
+        else:
+            await context.bot.get_me()
+            logger.info("❇️ Keep-alive: Bot getMe pingi.")
     except Exception as e:
         logger.error(f"Keep-alive xatosi: {e}")
 
@@ -420,7 +426,7 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return await price_edit_start(update, context)
 
     # "Bog'lanish" va "Biz haqimizda" tugmalari
-    if text == "📞 Bog'lanish":
+    if "Bog'lanish" in text:
         await update.message.reply_text(
             "📞 *Bog'lanish:*\n\n"
             "👨‍💻 Admin: @khusniddinkhamidov\n"
@@ -431,7 +437,7 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         )
         return SELECT_CATEGORY
     
-    if text == "ℹ️ Biz haqimizda":
+    if "Biz haqimizda" in text:
         await update.message.reply_text(
             "ℹ️ *JAKHPRINT haqida:*\n\n"
             "🌐 Veb-sayt yaratish\n"
@@ -442,6 +448,7 @@ async def category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             "Biz bilan ishlaganingiz uchun rahmat! 🙏",
             parse_mode="Markdown"
         )
+        return SELECT_CATEGORY
     return SELECT_CATEGORY
 
 # ── Hisob-kitob (Kalkulyator) Handlers ──────────────────
