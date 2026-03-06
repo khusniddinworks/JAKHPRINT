@@ -222,9 +222,13 @@ def run_health_check():
             clean_path = self.path.split('?')[0]
             
             # Faqat ruxsat berilgan fayl turlarini berish
-            if clean_path == '/' or clean_path == '/index.html':
-                super().do_GET()
-            elif any(clean_path.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+            allowed = (clean_path == '/' or clean_path == '/index.html' or 
+                       any(clean_path.endswith(ext) for ext in ALLOWED_EXTENSIONS))
+            
+            # Debug uchun log
+            # print(f"DEBUG: Path {self.path} -> Clean {clean_path} -> Allowed: {allowed}")
+            
+            if allowed:
                 super().do_GET()
             else:
                 self.send_response(403)
