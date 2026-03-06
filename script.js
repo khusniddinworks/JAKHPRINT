@@ -8,7 +8,7 @@ const container = document.getElementById('servicesContainer');
 tg.expand();
 tg.ready();
 
-let cart = {}; // { "Name": { quantity, price } }
+let cart = {}; // { "Name": { quantity, price, categoryId } }
 
 // Scroll hint
 window.addEventListener('scroll', () => {
@@ -46,20 +46,25 @@ function renderServices(categories) {
             const tag = svc.tag ? `<div class="tag">${svc.tag}</div>` : '';
             const unit = svc.unit || 'dona';
             const cardId = svc.name.replace(/\s+/g, '-');
+            const isPrint = cat.id === 'print';
 
             html += `
-                <div class="card" id="card-${cardId}" onclick="handleCardClick(event, this, '${svc.name}', ${svc.price})" style="animation-delay: ${delay}s">
+                <div class="card" id="card-${cardId}" onclick="handleCardClick(event, this, '${svc.name}', ${svc.price}, '${cat.id}')" style="animation-delay: ${delay}s">
                     <div class="check-badge">✅</div>
-                    <h3>${svc.name} <span class="price">${formatPrice(svc.price)} so'm / ${unit}</span></h3>
+                    <h3>
+                        ${svc.name} 
+                        <span class="price" id="price-display-${cardId}">${formatPrice(svc.price)} so'm</span>
+                    </h3>
                     <p>${svc.desc}</p>
                     ${tag}
+                    ${isPrint ? `
                     <div class="quantity-controls" onclick="event.stopPropagation()">
-                        <button class="qty-btn" onclick="updateQty('${svc.name}', -1, ${svc.price})">−</button>
+                        <button class="qty-btn" onclick="updateQty('${svc.name}', -1, ${svc.price}, '${cardId}')">−</button>
                         <input type="number" class="qty-input" id="qty-${cardId}" value="0" 
-                               onchange="setQty('${svc.name}', this.value, ${svc.price})"
+                               onchange="setQty('${svc.name}', this.value, ${svc.price}, '${cardId}')"
                                onfocus="this.select()">
-                        <button class="qty-btn" onclick="updateQty('${svc.name}', 1, ${svc.price})">+</button>
-                    </div>
+                        <button class="qty-btn" onclick="updateQty('${svc.name}', 1, ${svc.price}, '${cardId}')">+</button>
+                    </div>` : ''}
                 </div>`;
             delay += 0.05;
         });
@@ -71,37 +76,44 @@ function renderServices(categories) {
     container.innerHTML = html;
 }
 
-function handleCardClick(event, el, name, price) {
+function handleCardClick(event, el, name, price, categoryId) {
     if (event.target.closest('.quantity-controls')) return;
+
+    const cardId = name.replace(/\s+/g, '-');
 
     if (cart[name]) {
         delete cart[name];
         el.classList.remove('selected');
-        document.getElementById(`qty-${name.replace(/\s+/g, '-')}`).value = 0;
+        if (categoryId === 'print') {
+            document.getElementById(`qty-${cardId}`).value = 0;
+            updatePriceDisplay(cardId, price, 0);
+        }
     } else {
-        // Default quantity
-        let defaultQty = 1;
-        if (name.includes('Vizitka') || name.includes('Flayer')) defaultQty = 100;
-
-        cart[name] = { quantity: defaultQty, price: price };
+        if (categoryId === 'print') {
+            // Print uchun default 1 ta (yoki vizitka bo'lsa 100 ta)
+            let q = (name.includes('Vizitka') || name.includes('Flayer')) ? 100 : 1;
+            cart[name] = { quantity: q, price: price, categoryId: categoryId };
+            document.getElementById(`qty-${cardId}`).value = q;
+            updatePriceDisplay(cardId, price, q);
+        } else {
+            // Web/Bot uchun doim 1 ta
+            cart[name] = { quantity: 1, price: price, categoryId: categoryId };
+        }
         el.classList.add('selected');
-        document.getElementById(`qty-${name.replace(/\s+/g, '-')}`).value = defaultQty;
         if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
     }
     updateUI();
 }
 
-function updateQty(name, delta, price) {
+function updateQty(name, delta, price, cardId) {
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
     if (!cart[name]) {
-        cart[name] = { quantity: 0, price: price };
-        document.getElementById(`card-${name.replace(/\s+/g, '-')}`).classList.add('selected');
+        cart[name] = { quantity: 0, price: price, categoryId: 'print' };
+        document.getElementById(`card-${cardId}`).classList.add('selected');
     }
 
-    // Step size
-    let step = 1;
-    if (name.includes('Vizitka') || name.includes('Flayer')) step = 50;
+    let step = (name.includes('Vizitka') || name.includes('Flayer')) ? 50 : 1;
     if (name.includes('A4')) step = 10;
 
     cart[name].quantity += delta * step;
@@ -109,29 +121,39 @@ function updateQty(name, delta, price) {
     if (cart[name].quantity <= 0) {
         cart[name].quantity = 0;
         delete cart[name];
-        document.getElementById(`card-${name.replace(/\s+/g, '-')}`).classList.remove('selected');
+        document.getElementById(`card-${cardId}`).classList.remove('selected');
     }
 
-    document.getElementById(`qty-${name.replace(/\s+/g, '-')}`).value = cart[name] ? cart[name].quantity : 0;
+    let currentQty = cart[name] ? cart[name].quantity : 0;
+    document.getElementById(`qty-${cardId}`).value = currentQty;
+    updatePriceDisplay(cardId, price, currentQty);
     updateUI();
 }
 
-function setQty(name, val, price) {
+function setQty(name, val, price, cardId) {
     let q = parseInt(val) || 0;
-    const cardEl = document.getElementById(`card-${name.replace(/\s+/g, '-')}`);
+    const cardEl = document.getElementById(`card-${cardId}`);
 
     if (q <= 0) {
         q = 0;
         delete cart[name];
         if (cardEl) cardEl.classList.remove('selected');
     } else {
-        cart[name] = { quantity: q, price: price };
+        cart[name] = { quantity: q, price: price, categoryId: 'print' };
         if (cardEl) cardEl.classList.add('selected');
     }
 
-    const qtyInput = document.getElementById(`qty-${name.replace(/\s+/g, '-')}`);
-    if (qtyInput) qtyInput.value = q;
+    document.getElementById(`qty-${cardId}`).value = q;
+    updatePriceDisplay(cardId, price, q);
     updateUI();
+}
+
+function updatePriceDisplay(cardId, unitPrice, qty) {
+    const el = document.getElementById(`price-display-${cardId}`);
+    if (el) {
+        let displayPrice = qty > 0 ? unitPrice * qty : unitPrice;
+        el.textContent = `${formatPrice(displayPrice)} so'm`;
+    }
 }
 
 function updateUI() {
@@ -162,7 +184,13 @@ function sendOrder() {
     for (const name in cart) {
         let q = cart[name].quantity;
         let p = cart[name].price;
-        services.push(`${name} (${q} dona)`);
+        let catId = cart[name].categoryId;
+
+        if (catId === 'print') {
+            services.push(`${name} (${q} dona)`);
+        } else {
+            services.push(name);
+        }
         total += q * p;
     }
 
